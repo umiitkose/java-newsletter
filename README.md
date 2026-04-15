@@ -1,29 +1,63 @@
 # ☕ Java Digest Bot
 
 Java ekosisteminin önemli mimarlarının (Brian Goetz, Ron Pressler, Gavin Bierman ve diğerleri)
-yeni yazılarını ve mailing list mesajlarını takip edip her gün Telegram ve Slack'e özetleyen bot.
+yeni yazılarını, mailing list mesajlarını ve JEP durum değişikliklerini takip edip
+her gün **Telegram**, **Slack** ve **Discord**'a özetleyen bot.
 
 ## Takip Edilen Kaynaklar
 
+### Yazar Filtreli (sadece takip edilen isimler)
+
 | Kaynak | Yöntem |
 |--------|--------|
-| [inside.java](https://inside.java) | RSS (`/feed.xml`) + yazar filtresi |
-| OpenJDK amber-spec-experts | Mailing list RSS / HTML scrape |
-| OpenJDK valhalla-spec-observers | Mailing list RSS / HTML scrape |
-| OpenJDK loom-dev | Mailing list RSS / HTML scrape |
+| [inside.java](https://inside.java) | RSS + yazar filtresi |
+| [InfoQ Java](https://www.infoq.com/java/) | RSS + yazar filtresi |
+
+### OpenJDK Mailing Listleri (yazar filtreli)
+
+| Liste | Konu |
+|-------|------|
+| amber-spec-experts | Records, Pattern Matching, Sealed Classes |
+| valhalla-spec-observers | Value Types, Null Safety |
+| loom-dev | Virtual Threads, Structured Concurrency |
+| jdk-dev | Genel JDK geliştirme |
+| panama-dev | Foreign Function & Memory API |
+| leyden-dev | Startup performansı, AOT |
+| compiler-dev | HotSpot derleyici |
+| zgc-dev | ZGC garbage collector |
+
+### Topluluk Blogları (anahtar kelime filtreli)
+
+| Kaynak | Açıklama |
+|--------|----------|
+| [dev.java](https://dev.java) | Oracle resmi Java geliştirici portali |
+| [Foojay.io](https://foojay.io) | Java topluluk haberleri, JEP analizleri |
+| [Baeldung](https://www.baeldung.com) | Java tutorial ve derinlemesine yazılar |
+| [DZone Java](https://dzone.com/java) | Java zone makaleleri |
+| [Spring Blog](https://spring.io/blog) | Spring Framework güncellemeleri |
+| [Quarkus Blog](https://quarkus.io/blog) | Quarkus framework haberleri |
+| [JetBrains Blog](https://blog.jetbrains.com/idea/) | IntelliJ IDEA ve Java araç haberleri |
+
+### JEP Durum Takibi
+
+[openjdk.org/jeps](https://openjdk.org/jeps/0) sayfasından Amber, Valhalla, Loom, Panama, Leyden ve Lilliput projelerinin JEP durumlarını izler. Durum değişikliği olduğunda bildirim gönderir.
 
 ## Takip Edilen İsimler
 
-- Brian Goetz (Amber, Valhalla)
-- Ron Pressler (Loom)
-- Gavin Bierman (Amber — dil spec)
-- Maurizio Cimadamore (Valhalla, Panama)
-- Mark Reinhold (Leyden, genel mimari)
-- Dan Smith (Amber)
-- Angelos Bimpoudis (Amber)
-- Viktor Klang (Loom)
-- Alan Bateman (Core Libraries, Loom)
-- Paul Sandoz (Panama, Babylon)
+| İsim | Proje |
+|------|-------|
+| Brian Goetz | Amber, Valhalla |
+| Ron Pressler | Loom |
+| Gavin Bierman | Amber — dil spec |
+| Maurizio Cimadamore | Valhalla, Panama |
+| Mark Reinhold | Leyden, genel mimari |
+| Dan Smith | Amber |
+| Angelos Bimpoudis | Amber |
+| Viktor Klang | Loom |
+| Alan Bateman | Core Libraries, Loom |
+| Paul Sandoz | Panama, Babylon |
+
+> Yazarlar ve anahtar kelimeler `config.yml` dosyasından yönetilir.
 
 ---
 
@@ -32,11 +66,25 @@ yeni yazılarını ve mailing list mesajlarını takip edip her gün Telegram ve
 ### 1. Repoyu fork'la veya klonla
 
 ```bash
-git clone https://github.com/senin-kullanici-adin/java-digest
-cd java-digest
+git clone https://github.com/umiitkose/java-newsletter
+cd java-newsletter
 ```
 
-### 2. Telegram Bot Kur
+### 2. Yapılandırma
+
+Tüm ayarlar `config.yml` dosyasında merkezi olarak yönetilir:
+
+```yaml
+authors:         # takip edilen yazarlar
+keywords:        # topluluk blogları için anahtar kelime filtresi
+rss:             # RSS kaynakları (authorFiltered + community)
+mailingLists:    # OpenJDK mailing listleri
+jep:             # JEP durum takibi (enabled: true/false)
+ai:              # AI özet (enabled: true/false, provider: openai/ollama)
+pages:           # GitHub Pages (enabled: true/false, outputDir: docs)
+```
+
+### 3. Telegram Bot Kur
 
 1. Telegram'da [@BotFather](https://t.me/botfather)'a yaz
 2. `/newbot` komutuyla yeni bot oluştur → **BOT_TOKEN** al
@@ -46,7 +94,7 @@ cd java-digest
    ```
 4. Kanal kullanacaksan: botu kanala admin olarak ekle, chat ID'si `-100...` formatında başlar
 
-### 3. Slack Webhook Kur
+### 4. Slack Webhook Kur (opsiyonel)
 
 Her kanal için ayrı webhook oluştur:
 
@@ -64,25 +112,31 @@ Her kanal için ayrı webhook oluştur:
 #java-panama    → Native Interop, Vector API
 ```
 
-### 4. GitHub Secrets Ekle
+### 5. Discord Webhook Kur (opsiyonel)
+
+1. Discord sunucunda bir kanal seç → **Edit Channel → Integrations → Webhooks**
+2. **New Webhook** oluştur → URL'yi kopyala
+
+### 6. GitHub Secrets Ekle
 
 Repo → **Settings → Secrets and variables → Actions → New repository secret**
 
-| Secret Adı | Açıklama |
-|------------|----------|
-| `TELEGRAM_BOT_TOKEN` | BotFather'dan alınan token |
-| `TELEGRAM_CHAT_ID` | Kanal veya kullanıcı ID'si |
-| `SLACK_WEBHOOK_GENERAL` | Genel kanal webhook (zorunlu) |
-| `SLACK_WEBHOOK_AMBER` | #java-amber (opsiyonel) |
-| `SLACK_WEBHOOK_VALHALLA` | #java-valhalla (opsiyonel) |
-| `SLACK_WEBHOOK_LOOM` | #java-loom (opsiyonel) |
-| `SLACK_WEBHOOK_LEYDEN` | #java-leyden (opsiyonel) |
-| `SLACK_WEBHOOK_PANAMA` | #java-panama (opsiyonel) |
+| Secret Adı | Açıklama | Zorunlu |
+|------------|----------|---------|
+| `TELEGRAM_BOT_TOKEN` | BotFather'dan alınan token | Hayır |
+| `TELEGRAM_CHAT_ID` | Kanal veya kullanıcı ID'si | Hayır |
+| `SLACK_WEBHOOK_GENERAL` | Genel kanal webhook | Hayır |
+| `SLACK_WEBHOOK_AMBER` | #java-amber | Hayır |
+| `SLACK_WEBHOOK_VALHALLA` | #java-valhalla | Hayır |
+| `SLACK_WEBHOOK_LOOM` | #java-loom | Hayır |
+| `SLACK_WEBHOOK_LEYDEN` | #java-leyden | Hayır |
+| `SLACK_WEBHOOK_PANAMA` | #java-panama | Hayır |
+| `DISCORD_WEBHOOK_URL` | Discord webhook URL'si | Hayır |
+| `OPENAI_API_KEY` | AI özet için OpenAI API key | Hayır |
 
-> Slack'te sadece `SLACK_WEBHOOK_GENERAL` zorunludur.
-> Diğerleri eksikse o proje içerikleri GENERAL'e düşer.
+> En az bir bildirim kanalı (Telegram, Slack veya Discord) yapılandırılmalıdır.
 
-### 5. İlk çalıştırma
+### 7. İlk çalıştırma
 
 Actions sekmesinden **"Java Digest — Günlük Özet"** workflow'unu seç →
 **Run workflow** ile manuel tetikle.
@@ -91,23 +145,30 @@ Actions sekmesinden **"Java Digest — Günlük Özet"** workflow'unu seç →
 
 ## Çalışma Zamanı
 
-Varsayılan: **Her gün 08:00 UTC** (Türkiye saati: 11:00 yaz / 10:00 kış)
+| Zamanlama | Açıklama |
+|-----------|----------|
+| Her gün 08:00 UTC | Günlük digest (Türkiye: 11:00 yaz / 10:00 kış) |
+| Pazartesi 09:00 UTC | Haftalık özet (son 7 günün içerikleri) |
 
-Değiştirmek için `.github/workflows/daily-digest.yml` içindeki cron satırını düzenle:
-```yaml
-- cron: '0 8 * * *'   # saat 8:00 UTC
-```
+Değiştirmek için `.github/workflows/daily-digest.yml` içindeki cron satırını düzenle.
 
 ---
 
 ## Yerel Test
 
 ```bash
+# Minimum: sadece makale toplama (bildirim kanalı olmadan da çalışır)
+mvn package -q
+java -jar target/java-digest-1.0-SNAPSHOT.jar
+
+# Bildirim kanallarıyla:
 export TELEGRAM_BOT_TOKEN="..."
 export TELEGRAM_CHAT_ID="..."
-export SLACK_WEBHOOK_GENERAL="..."
+export DISCORD_WEBHOOK_URL="..."
+java -jar target/java-digest-1.0-SNAPSHOT.jar
 
-mvn package -q
+# AI özet aktif (config.yml'da ai.enabled: true olmalı):
+export OPENAI_API_KEY="sk-..."
 java -jar target/java-digest-1.0-SNAPSHOT.jar
 ```
 
@@ -116,13 +177,69 @@ java -jar target/java-digest-1.0-SNAPSHOT.jar
 ## Mimari
 
 ```
-GitHub Actions (cron)
+GitHub Actions (cron — günlük/haftalık)
         │
         ▼
-   Main.java
-    ├── RssFetcher         → inside.java + mailing list RSS
-    ├── MailingListScraper → RSS başarısız olursa HTML fallback
-    ├── StateManager       → state.json ile tekrar gönderimi önle
-    ├── TelegramNotifier   → tek mesaj, yazara göre gruplu
-    └── SlackNotifier      → proje tag'ine göre kanallara dağıt
+   Main.java (CompletableFuture ile paralel fetch)
+    │
+    ├── config.yml ─────────── DigestConfig (merkezi yapılandırma)
+    │
+    ├── Fetcher'lar (paralel çalışır)
+    │   ├── RssFetcher
+    │   │   ├── fetchAuthorFilteredFeeds()  → inside.java, InfoQ (yazar filtreli)
+    │   │   ├── fetchCommunityBlogs()       → Foojay, Quarkus, DZone... (keyword filtreli)
+    │   │   └── fetchMailingLists()         → 8 OpenJDK mailing list (RSS)
+    │   ├── MailingListScraper             → RSS başarısız olursa HTML fallback
+    │   └── JepTracker                     → JEP durum değişikliklerini izle
+    │
+    ├── StateManager ──────── state.json ile tekrar gönderimi önle
+    ├── AISummarizer ──────── OpenAI / Ollama ile günlük özet (opsiyonel)
+    │
+    ├── Bildirim Kanalları
+    │   ├── TelegramNotifier → tek mesaj, yazara göre gruplu
+    │   ├── SlackNotifier    → proje tag'ine göre kanallara dağıt
+    │   └── DiscordNotifier  → embed formatında zengin mesajlar
+    │
+    └── DigestPageGenerator ── docs/ klasörüne Markdown arşiv sayfası
 ```
+
+## Proje Yapısı
+
+```
+java-digest/
+├── config.yml                          # merkezi yapılandırma
+├── state.json                          # gönderilen makale ID'leri
+├── jep-state.json                      # JEP durum geçmişi
+├── docs/                               # GitHub Pages arşivi
+│   ├── index.md
+│   └── 2026-04-15.md
+├── pom.xml
+├── .github/workflows/daily-digest.yml
+└── src/main/java/com/javadigest/
+    ├── Main.java
+    ├── config/
+    │   └── DigestConfig.java
+    ├── fetcher/
+    │   ├── RssFetcher.java
+    │   ├── MailingListScraper.java
+    │   └── JepTracker.java
+    ├── generator/
+    │   └── DigestPageGenerator.java
+    ├── model/
+    │   └── Article.java
+    ├── notifier/
+    │   ├── Notifier.java
+    │   ├── TelegramNotifier.java
+    │   ├── SlackNotifier.java
+    │   └── DiscordNotifier.java
+    ├── state/
+    │   └── StateManager.java
+    └── summarizer/
+        └── AISummarizer.java
+```
+
+---
+
+## Lisans
+
+MIT
