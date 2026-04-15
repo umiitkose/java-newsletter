@@ -49,10 +49,22 @@ public class RssFetcher {
 
             for (SyndEntry entry : feed.getEntries()) {
                 String author = entry.getAuthor() != null ? entry.getAuthor().trim() : "";
+                if (author.isEmpty() && !entry.getContributors().isEmpty()) {
+                    author = entry.getContributors().get(0).getName();
+                }
+                if (author.isEmpty() && !entry.getForeignMarkup().isEmpty()) {
+                    // Atom <author><name> tag'i
+                    author = entry.getForeignMarkup().stream()
+                            .filter(e -> e.getName().equals("author"))
+                            .map(e -> e.getChildText("name"))
+                            .filter(s -> s != null && !s.isEmpty())
+                            .findFirst().orElse("");
+                }
 
                 // Yazar kontrolü — case-insensitive kısmi eşleşme
+                String finalAuthor = author;
                 boolean isTracked = TRACKED_AUTHORS.stream()
-                        .anyMatch(a -> author.toLowerCase().contains(a.toLowerCase()));
+                        .anyMatch(a -> finalAuthor.toLowerCase().contains(a.toLowerCase()));
 
                 if (!isTracked) continue;
 

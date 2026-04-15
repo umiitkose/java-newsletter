@@ -48,7 +48,7 @@ public class MailingListScraper {
                 // Ana sayfa — aylık arşiv linkleri listesi
                 Document index = Jsoup.connect(baseUrl)
                         .userAgent("Mozilla/5.0 (Java digest bot)")
-                        .timeout(10_000)
+                        .timeout(30_000)
                         .get();
 
                 // En son ay linkini bul (genelde son satır)
@@ -60,7 +60,7 @@ public class MailingListScraper {
                 // O ayın içindeki mesajları tara
                 Document monthPage = Jsoup.connect(latestMonthUrl)
                         .userAgent("Mozilla/5.0 (Java digest bot)")
-                        .timeout(10_000)
+                        .timeout(30_000)
                         .get();
 
                 // Her mesaj satırı: konu + gönderen

@@ -32,11 +32,14 @@ public class Main {
         allArticles.addAll(rss.fetchMailingLists());
         allArticles.addAll(rss.fetchInfoQ());
         // RSS başarısız olursa HTML scraper devreye girer
-        if (allArticles.isEmpty()) {
-            log.info("RSS boş döndü, scraper deneniyor...");
-            MailingListScraper scraper = new MailingListScraper();
-            allArticles.addAll(scraper.scrapeRecentMessages());
+        allArticles.addAll(rss.fetchInsideJava());
+
+        List<Article> mailingArticles = rss.fetchMailingLists();
+        if (mailingArticles.isEmpty()) {
+            log.info("Mailing list RSS boş, scraper deneniyor...");
+            mailingArticles = new MailingListScraper().scrapeRecentMessages();
         }
+        allArticles.addAll(mailingArticles);
 
         if ("weekly".equals(mode)) {
             allArticles = allArticles.stream()

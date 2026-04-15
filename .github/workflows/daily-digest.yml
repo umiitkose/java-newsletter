@@ -61,6 +61,6 @@ jobs:
           git config user.name  "Java Digest Bot"
           git config user.email "bot@java-digest"
           git add state.json
-          # Değişiklik yoksa commit atma
           git diff --staged --quiet || git commit -m "chore: state güncellendi [$(date +'%Y-%m-%d')]"
+          git pull --rebase origin main
           git push
