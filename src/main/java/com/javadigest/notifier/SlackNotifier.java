@@ -41,6 +41,10 @@ public class SlackNotifier implements Notifier {
         this.json = new ObjectMapper();
     }
 
+    public boolean hasWebhooks() {
+        return !channelWebhooks.isEmpty();
+    }
+
     /**
      * Env değişkenlerinden otomatik olarak SlackNotifier oluşturur.
      * SLACK_WEBHOOK_GENERAL zorunlu; diğerleri yoksa GENERAL'e düşer.

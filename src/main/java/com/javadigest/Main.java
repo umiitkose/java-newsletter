@@ -29,11 +29,9 @@ public class Main {
 
         RssFetcher rss = new RssFetcher();
         allArticles.addAll(rss.fetchInsideJava());
-        allArticles.addAll(rss.fetchMailingLists());
         allArticles.addAll(rss.fetchInfoQ());
-        // RSS başarısız olursa HTML scraper devreye girer
-        allArticles.addAll(rss.fetchInsideJava());
 
+        // Mailing lists: önce RSS dene, boşsa scraper devreye girer
         List<Article> mailingArticles = rss.fetchMailingLists();
         if (mailingArticles.isEmpty()) {
             log.info("Mailing list RSS boş, scraper deneniyor...");
@@ -80,11 +78,15 @@ public class Main {
 
         // Slack
         SlackNotifier slack = SlackNotifier.fromEnv();
-        try {
-            slack.send(newArticles);
-        } catch (Exception e) {
-            log.warning("Slack gönderilemedi: " + e.getMessage());
-            hasError = true;
+        if (slack.hasWebhooks()) {
+            try {
+                slack.send(newArticles);
+            } catch (Exception e) {
+                log.warning("Slack gönderilemedi: " + e.getMessage());
+                hasError = true;
+            }
+        } else {
+            log.info("Slack webhook yapılandırılmamış, atlanıyor.");
         }
 
         // ── 4. State güncelle ────────────────────────────────────────────

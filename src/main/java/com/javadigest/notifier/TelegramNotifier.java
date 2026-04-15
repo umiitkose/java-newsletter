@@ -39,22 +39,20 @@ public class TelegramNotifier implements Notifier {
 
         String fullMessage = buildMessage(articles);
 
-        // 4096'dan kısaysa tek seferde gönder
         if (fullMessage.length() <= 4096) {
-            sendMessage(chatId, fullMessage);
+            sendMessage(fullMessage);
             return;
         }
 
-        // Uzunsa her makaleyi ayrı mesaj olarak gönder
         String header = "☕ *Java Digest — " + java.time.LocalDate.now() + "*\n\n";
-        sendMessage(chatId, header);
+        sendMessage(header);
 
         for (Article a : articles) {
             String msg = "👤 *" + escapeMarkdown(a.author()) + "*\n"
                     + "[" + escapeMarkdown(a.title()) + "](" + a.url() + ")\n"
                     + "_" + escapeMarkdown(a.source()) + "_";
-            sendMessage(chatId, msg);
-            Thread.sleep(300); // Telegram rate limit: saniyede 30 mesaj
+            sendMessage(msg);
+            Thread.sleep(300);
         }
     }
 
@@ -63,7 +61,6 @@ public class TelegramNotifier implements Notifier {
         sb.append("☕ *Java Digest — Günlük Özet*\n");
         sb.append("📅 ").append(java.time.LocalDate.now()).append("\n\n");
 
-        // Yazara göre grupla
         articles.stream()
                 .collect(java.util.stream.Collectors.groupingBy(Article::author))
                 .forEach((author, items) -> {
@@ -80,16 +77,18 @@ public class TelegramNotifier implements Notifier {
         return sb.toString();
     }
 
-    private void sendMessage(String chatId, String text) throws Exception {
-        String url = API_BASE + botToken + "/sendMessage"
-                + "?chat_id=" + URLEncoder.encode(chatId, StandardCharsets.UTF_8)
-                + "&text="    + URLEncoder.encode(text, StandardCharsets.UTF_8)
-                + "&parse_mode=MarkdownV2"
+    private void sendMessage(String text) throws Exception {
+        String url = API_BASE + botToken + "/sendMessage";
+
+        String body = "chat_id=" + URLEncoder.encode(chatId, StandardCharsets.UTF_8)
+                + "&text=" + URLEncoder.encode(text, StandardCharsets.UTF_8)
+                + "&parse_mode=Markdown"
                 + "&disable_web_page_preview=true";
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .GET()
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build();
 
         HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
@@ -99,9 +98,11 @@ public class TelegramNotifier implements Notifier {
         }
     }
 
-    /** MarkdownV2 için özel karakterleri escape et */
     private String escapeMarkdown(String text) {
         if (text == null) return "";
-        return text.replaceAll("([_*\\[\\]()~`>#+\\-=|{}.!])", "\\\\$1");
+        return text.replace("_", "\\_")
+                   .replace("*", "\\*")
+                   .replace("`", "\\`")
+                   .replace("[", "\\[");
     }
 }

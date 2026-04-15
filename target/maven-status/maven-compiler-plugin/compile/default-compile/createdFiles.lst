@@ -1,0 +1,9 @@
+com/javadigest/state/StateManager.class
+com/javadigest/Main.class
+com/javadigest/model/Article.class
+com/javadigest/notifier/Notifier.class
+com/javadigest/state/StateManager$1.class
+com/javadigest/notifier/TelegramNotifier.class
+com/javadigest/notifier/SlackNotifier.class
+com/javadigest/fetcher/MailingListScraper.class
+com/javadigest/fetcher/RssFetcher.class

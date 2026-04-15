@@ -1,0 +1,8 @@
+/Users/umitkose/Desktop/java-digest/src/main/java/com/javadigest/Main.java
+/Users/umitkose/Desktop/java-digest/src/main/java/com/javadigest/fetcher/MailingListScraper.java
+/Users/umitkose/Desktop/java-digest/src/main/java/com/javadigest/fetcher/RssFetcher.java
+/Users/umitkose/Desktop/java-digest/src/main/java/com/javadigest/model/Article.java
+/Users/umitkose/Desktop/java-digest/src/main/java/com/javadigest/notifier/Notifier.java
+/Users/umitkose/Desktop/java-digest/src/main/java/com/javadigest/notifier/SlackNotifier.java
+/Users/umitkose/Desktop/java-digest/src/main/java/com/javadigest/notifier/TelegramNotifier.java
+/Users/umitkose/Desktop/java-digest/src/main/java/com/javadigest/state/StateManager.java

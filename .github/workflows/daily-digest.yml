@@ -17,11 +17,13 @@ jobs:
   digest:
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # state.json'ı repo'ya commit etmek için
+      contents: write
 
     steps:
       - name: Repo'yu çek
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Java 21 kur
         uses: actions/setup-java@v4
@@ -41,19 +43,15 @@ jobs:
 
       - name: Digest çalıştır
         env:
-          DIGEST_MODE: ${{ github.event.schedule == '0 9 * * 1' && 'weekly' || 'daily' }}
-          # ── Telegram ──────────────────────────────────────
+          DIGEST_MODE: ${{ github.event.schedule == '0 9 * * 1' && 'weekly' || inputs.mode || 'daily' }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
-
-          # ── Slack Webhooks (opsiyonel, sadece istediğin kanalları ekle) ──
           SLACK_WEBHOOK_GENERAL:  ${{ secrets.SLACK_WEBHOOK_GENERAL }}
           SLACK_WEBHOOK_AMBER:    ${{ secrets.SLACK_WEBHOOK_AMBER }}
           SLACK_WEBHOOK_VALHALLA: ${{ secrets.SLACK_WEBHOOK_VALHALLA }}
           SLACK_WEBHOOK_LOOM:     ${{ secrets.SLACK_WEBHOOK_LOOM }}
           SLACK_WEBHOOK_LEYDEN:   ${{ secrets.SLACK_WEBHOOK_LEYDEN }}
           SLACK_WEBHOOK_PANAMA:   ${{ secrets.SLACK_WEBHOOK_PANAMA }}
-
         run: java -jar target/java-digest-1.0-SNAPSHOT.jar
 
       - name: state.json güncelle (commit + push)
@@ -61,6 +59,7 @@ jobs:
           git config user.name  "Java Digest Bot"
           git config user.email "bot@java-digest"
           git add state.json
-          git diff --staged --quiet || git commit -m "chore: state güncellendi [$(date +'%Y-%m-%d')]"
+          git diff --staged --quiet && exit 0
+          git commit -m "chore: state güncellendi [$(date +'%Y-%m-%d')]"
           git pull --rebase origin main
           git push
