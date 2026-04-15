@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Test Feed</title>
+    <link>https://example.com</link>
+    <description>Test RSS feed</description>
+    <item>
+      <title>Virtual Threads in Java 21</title>
+      <link>https://example.com/article1</link>
+      <author>Brian Goetz</author>
+      <pubDate>Mon, 14 Apr 2026 10:00:00 +0000</pubDate>
+      <category>Java</category>
+      <description>Article about virtual threads.</description>
+    </item>
+    <item>
+      <title>Spring Boot 4.0 Released</title>
+      <link>https://example.com/article2</link>
+      <author>John Doe</author>
+      <pubDate>Mon, 14 Apr 2026 09:00:00 +0000</pubDate>
+      <category>Spring</category>
+      <description>New Spring Boot release.</description>
+    </item>
+    <item>
+      <title>Pattern Matching Updates</title>
+      <link>https://example.com/article3</link>
+      <author>angelos.bimpoudis@oracle.com (Angelos Bimpoudis)</author>
+      <pubDate>Sun, 13 Apr 2026 08:00:00 +0000</pubDate>
+      <category>Amber</category>
+      <description>Pattern matching improvements.</description>
+    </item>
+  </channel>
+</rss>

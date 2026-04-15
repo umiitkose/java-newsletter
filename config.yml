@@ -1,0 +1,86 @@
+authors:
+  - Brian Goetz
+  - Ron Pressler
+  - Gavin Bierman
+  - Maurizio Cimadamore
+  - Mark Reinhold
+  - Dan Smith
+  - Angelos Bimpoudis
+  - Viktor Klang
+  - Alan Bateman
+  - Paul Sandoz
+
+keywords:
+  - virtual threads
+  - pattern matching
+  - value types
+  - sealed classes
+  - records
+  - project amber
+  - project valhalla
+  - project loom
+  - project panama
+  - project leyden
+  - structured concurrency
+  - scoped values
+  - foreign function
+  - string templates
+
+rss:
+  authorFiltered:
+    - name: inside.java
+      url: https://inside.java/feed.xml
+    - name: infoq
+      url: https://feed.infoq.com/java
+
+  community:
+    - name: dev.java
+      url: https://dev.java/feed.xml
+    - name: foojay
+      url: https://foojay.io/feed/
+    - name: baeldung
+      url: https://www.baeldung.com/feed
+    - name: dzone
+      url: https://feeds.dzone.com/java
+    - name: spring
+      url: https://spring.io/blog.atom
+    - name: quarkus
+      url: https://quarkus.io/feed.xml
+    - name: jetbrains-idea
+      url: https://blog.jetbrains.com/idea/feed/
+
+mailingLists:
+  - name: amber-spec-experts
+    email: amber-spec-experts@openjdk.org
+  - name: valhalla-spec-observers
+    email: valhalla-spec-observers@openjdk.org
+  - name: loom-dev
+    email: loom-dev@openjdk.org
+  - name: jdk-dev
+    email: jdk-dev@openjdk.org
+  - name: panama-dev
+    email: panama-dev@openjdk.org
+  - name: leyden-dev
+    email: leyden-dev@openjdk.org
+  - name: compiler-dev
+    email: compiler-dev@openjdk.org
+  - name: zgc-dev
+    email: zgc-dev@openjdk.org
+
+jep:
+  enabled: true
+  trackedProjects:
+    - Amber
+    - Valhalla
+    - Loom
+    - Panama
+    - Leyden
+    - Lilliput
+
+ai:
+  enabled: false
+  provider: openai
+
+pages:
+  enabled: true
+  outputDir: docs

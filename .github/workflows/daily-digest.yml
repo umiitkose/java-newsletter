@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pages: write
 
     steps:
       - name: Repo'yu çek
@@ -52,14 +53,16 @@ jobs:
           SLACK_WEBHOOK_LOOM:     ${{ secrets.SLACK_WEBHOOK_LOOM }}
           SLACK_WEBHOOK_LEYDEN:   ${{ secrets.SLACK_WEBHOOK_LEYDEN }}
           SLACK_WEBHOOK_PANAMA:   ${{ secrets.SLACK_WEBHOOK_PANAMA }}
+          DISCORD_WEBHOOK_URL:    ${{ secrets.DISCORD_WEBHOOK_URL }}
+          OPENAI_API_KEY:         ${{ secrets.OPENAI_API_KEY }}
         run: java -jar target/java-digest-1.0-SNAPSHOT.jar
 
-      - name: state.json güncelle (commit + push)
+      - name: Değişiklikleri commit + push
         run: |
           git config user.name  "Java Digest Bot"
           git config user.email "bot@java-digest"
-          git add state.json
+          git add state.json jep-state.json docs/ || true
           git diff --staged --quiet && exit 0
-          git commit -m "chore: state güncellendi [$(date +'%Y-%m-%d')]"
+          git commit -m "chore: digest güncellendi [$(date +'%Y-%m-%d')]"
           git pull --rebase origin main
           git push

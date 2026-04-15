@@ -68,10 +68,9 @@ public class StateManager {
 
     private void saveState() {
         try {
-            // Sadece son 500 ID'yi tut — dosyanın şişmemesi için
             List<String> toSave = seenIds.stream()
                     .sorted()
-                    .limit(500)
+                    .limit(2000)
                     .toList();
             json.writerWithDefaultPrettyPrinter().writeValue(new File(STATE_FILE), toSave);
             log.info("state.json güncellendi: " + toSave.size() + " kayıt.");

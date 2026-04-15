@@ -1,5 +1,6 @@
 package com.javadigest.fetcher;
 
+import com.javadigest.config.DigestConfig;
 import com.javadigest.model.Article;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -24,31 +25,22 @@ public class MailingListScraper {
             "Mozilla/5.0 (compatible; JavaDigestBot/1.0; +https://github.com/umiitkose/java-newsletter)";
     private static final int TIMEOUT = 20_000;
 
-    private static final Set<String> TRACKED_AUTHORS = Set.of(
-            "Brian Goetz", "Ron Pressler", "Gavin Bierman",
-            "Maurizio Cimadamore", "Mark Reinhold", "Dan Smith",
-            "Angelos Bimpoudis", "Viktor Klang", "Alan Bateman", "Paul Sandoz"
-    );
+    private final Set<String> trackedAuthors;
+    private final List<DigestConfig.MailingListEntry> mailingLists;
 
-    private static final List<String[]> LISTS = List.of(
-            new String[]{"amber-spec-experts",
-                    "https://mail.openjdk.org/pipermail/amber-spec-experts/"},
-            new String[]{"valhalla-spec-observers",
-                    "https://mail.openjdk.org/pipermail/valhalla-spec-observers/"},
-            new String[]{"loom-dev",
-                    "https://mail.openjdk.org/pipermail/loom-dev/"}
-    );
+    public MailingListScraper(DigestConfig config) {
+        this.trackedAuthors = Set.copyOf(config.getAuthors());
+        this.mailingLists = config.getMailingLists();
+    }
 
     public List<Article> scrapeRecentMessages() {
         List<Article> results = new ArrayList<>();
-
-        for (String[] listInfo : LISTS) {
-            String listName = listInfo[0];
-            String baseUrl = listInfo[1];
+        for (DigestConfig.MailingListEntry ml : mailingLists) {
+            String baseUrl = "https://mail.openjdk.org/pipermail/" + ml.getName() + "/";
             try {
-                results.addAll(scrapePipermail(listName, baseUrl));
+                results.addAll(scrapePipermail(ml.getName(), baseUrl));
             } catch (Exception e) {
-                log.warning(listName + " scrape hatası: " + e.getMessage());
+                log.warning(ml.getName() + " scrape hatası: " + e.getMessage());
             }
         }
         return results;
@@ -63,14 +55,12 @@ public class MailingListScraper {
                 .followRedirects(true)
                 .get();
 
-        // Pipermail index: <A href="2026-February/date.html">[ Date ]</A>
         Elements dateLinks = index.select("a[href$=/date.html]");
         if (dateLinks.isEmpty()) {
             log.fine(listName + ": pipermail'de aylık arşiv bulunamadı.");
             return results;
         }
 
-        // İlk link en güncel ay (pipermail ters kronolojik sırada)
         String latestHref = dateLinks.first().attr("href");
         String monthUrl = latestHref.startsWith("http")
                 ? latestHref
@@ -82,9 +72,6 @@ public class MailingListScraper {
                 .followRedirects(true)
                 .get();
 
-        // Pipermail date page format:
-        // <LI><A HREF="004351.html">Subject</A><A NAME="4351">&nbsp;</A>
-        // <I>Author Name</I>
         for (Element li : monthPage.select("ul li")) {
             Element authorEl = li.selectFirst("i");
             if (authorEl == null) continue;
@@ -120,7 +107,7 @@ public class MailingListScraper {
     private String extractAuthor(String text) {
         if (text == null) return null;
         String lower = text.toLowerCase();
-        for (String author : TRACKED_AUTHORS) {
+        for (String author : trackedAuthors) {
             if (lower.contains(author.toLowerCase())) {
                 return author;
             }

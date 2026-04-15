@@ -1,5 +1,6 @@
 package com.javadigest.fetcher;
 
+import com.javadigest.config.DigestConfig;
 import com.javadigest.model.Article;
 import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndFeed;
@@ -10,10 +11,7 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Logger;
 
 public class RssFetcher {
@@ -23,46 +21,141 @@ public class RssFetcher {
     private static final int READ_TIMEOUT = 15_000;
     private static final String USER_AGENT = "Java-Digest-Bot/1.0 (https://github.com/umiitkose/java-newsletter)";
 
-    private static final String INSIDE_JAVA_RSS = "https://inside.java/feed.xml";
+    private final Set<String> trackedAuthors;
+    private final Set<String> keywords;
+    private final List<DigestConfig.RssSource> authorFilteredFeeds;
+    private final List<DigestConfig.RssSource> communityFeeds;
+    private final List<DigestConfig.MailingListEntry> mailingLists;
 
-    private static final Set<String> TRACKED_AUTHORS = Set.of(
-            "Brian Goetz",
-            "Ron Pressler",
-            "Gavin Bierman",
-            "Maurizio Cimadamore",
-            "Mark Reinhold",
-            "Dan Smith",
-            "Angelos Bimpoudis",
-            "Viktor Klang",
-            "Alan Bateman",
-            "Paul Sandoz"
-    );
+    public RssFetcher(DigestConfig config) {
+        this.trackedAuthors = Set.copyOf(config.getAuthors());
+        this.keywords = Set.copyOf(config.getKeywords());
+        this.authorFilteredFeeds = config.getRss().getAuthorFiltered();
+        this.communityFeeds = config.getRss().getCommunity();
+        this.mailingLists = config.getMailingLists();
+    }
 
-    public List<Article> fetchInsideJava() {
+    /**
+     * Yazar filtreli RSS kaynakları (inside.java, InfoQ gibi).
+     * Sadece takip edilen yazarların içerikleri döner.
+     */
+    public List<Article> fetchAuthorFilteredFeeds() {
         List<Article> results = new ArrayList<>();
-        int maxRetries = 2;
-
-        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+        for (DigestConfig.RssSource source : authorFilteredFeeds) {
             try {
-                SyndFeed feed = fetchFeed(INSIDE_JAVA_RSS);
+                SyndFeed feed = fetchFeed(source.getUrl());
                 for (SyndEntry entry : feed.getEntries()) {
-                    Article article = parseInsideJavaEntry(entry);
-                    if (article != null) {
-                        results.add(article);
-                    }
+                    String author = resolveAuthor(entry);
+                    if (!isTrackedAuthor(author)) continue;
+
+                    String url = entry.getLink();
+                    String tags = extractTags(entry);
+                    results.add(new Article(
+                            url, entry.getTitle(), url, author,
+                            source.getName(),
+                            toLocalDate(entry.getPublishedDate()),
+                            tags
+                    ));
                 }
-                break;
+                log.info(source.getName() + " RSS: " + results.size() + " takip edilen makale.");
             } catch (Exception e) {
-                log.warning("inside.java RSS fetch hatası (deneme " + attempt + "/" + maxRetries + "): " + e.getMessage());
-                if (attempt < maxRetries) {
-                    try { Thread.sleep(2000); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
-                }
+                log.warning(source.getName() + " RSS fetch hatası: " + e.getMessage());
             }
         }
         return results;
     }
 
-    private Article parseInsideJavaEntry(SyndEntry entry) {
+    /**
+     * Topluluk blogları (dev.java, Foojay, Baeldung, DZone, Spring gibi).
+     * Anahtar kelime filtresi uygular — tüm makaleleri değil, ilgili olanları döndürür.
+     */
+    public List<Article> fetchCommunityBlogs() {
+        List<Article> results = new ArrayList<>();
+        for (DigestConfig.RssSource source : communityFeeds) {
+            int found = 0;
+            try {
+                SyndFeed feed = fetchFeed(source.getUrl());
+                for (SyndEntry entry : feed.getEntries()) {
+                    String title = entry.getTitle() != null ? entry.getTitle() : "";
+                    String tags = extractTags(entry);
+                    String combined = (title + " " + tags).toLowerCase();
+
+                    boolean relevant = isTrackedAuthor(resolveAuthor(entry))
+                            || keywords.stream().anyMatch(k -> combined.contains(k.toLowerCase()));
+
+                    if (!relevant) continue;
+
+                    String url = entry.getLink();
+                    String author = entry.getAuthor() != null ? entry.getAuthor().trim() : "";
+                    results.add(new Article(
+                            url, title, url, author,
+                            source.getName(),
+                            toLocalDate(entry.getPublishedDate()),
+                            tags
+                    ));
+                    found++;
+                }
+                if (found > 0) {
+                    log.info(source.getName() + " RSS: " + found + " ilgili makale.");
+                }
+            } catch (Exception e) {
+                log.warning(source.getName() + " RSS fetch hatası: " + e.getMessage());
+            }
+        }
+        return results;
+    }
+
+    /**
+     * OpenJDK mailing list RSS feed'leri (Hyperkitty arşivi).
+     * Takip edilen yazarların mesajlarını döndürür.
+     */
+    public List<Article> fetchMailingLists() {
+        List<Article> results = new ArrayList<>();
+
+        for (DigestConfig.MailingListEntry ml : mailingLists) {
+            String feedUrl = "https://mail.openjdk.org/archives/list/" + ml.getEmail() + "/feed/";
+            int found = 0;
+            try {
+                SyndFeed feed = fetchFeed(feedUrl);
+                for (SyndEntry entry : feed.getEntries()) {
+                    String author = entry.getAuthor() != null ? entry.getAuthor().trim() : "";
+                    String displayName = extractDisplayName(author);
+
+                    if (!isTrackedAuthor(displayName)) continue;
+
+                    String articleUrl = entry.getLink();
+                    results.add(new Article(
+                            articleUrl, entry.getTitle(), articleUrl, displayName,
+                            "openjdk-" + ml.getName(),
+                            toLocalDate(entry.getPublishedDate()),
+                            ml.getName()
+                    ));
+                    found++;
+                }
+                if (found > 0) {
+                    log.info(ml.getName() + " RSS: " + found + " takip edilen mesaj.");
+                }
+            } catch (Exception e) {
+                log.warning(ml.getName() + " RSS fetch hatası: " + e.getMessage());
+            }
+        }
+        return results;
+    }
+
+    // ── Yardımcı metotlar ──
+
+    SyndFeed fetchFeed(String url) throws Exception {
+        HttpURLConnection conn = (HttpURLConnection) URI.create(url).toURL().openConnection();
+        conn.setConnectTimeout(CONNECT_TIMEOUT);
+        conn.setReadTimeout(READ_TIMEOUT);
+        conn.setRequestProperty("User-Agent", USER_AGENT);
+        conn.setInstanceFollowRedirects(true);
+        try (XmlReader reader = new XmlReader(conn)) {
+            return new SyndFeedInput().build(reader);
+        }
+    }
+
+    private String resolveAuthor(SyndEntry entry) {
         String author = entry.getAuthor() != null ? entry.getAuthor().trim() : "";
         if (author.isEmpty() && !entry.getContributors().isEmpty()) {
             author = entry.getContributors().get(0).getName();
@@ -74,105 +167,15 @@ public class RssFetcher {
                     .filter(s -> s != null && !s.isEmpty())
                     .findFirst().orElse("");
         }
-
-        String finalAuthor = author;
-        boolean isTracked = TRACKED_AUTHORS.stream()
-                .anyMatch(a -> finalAuthor.toLowerCase().contains(a.toLowerCase()));
-        if (!isTracked) return null;
-
-        String url = entry.getLink();
-        String title = entry.getTitle();
-        LocalDate date = toLocalDate(entry.getPublishedDate());
-
-        String tags = entry.getCategories().stream()
-                .map(c -> c.getName())
-                .reduce("", (a, b) -> a.isEmpty() ? b : a + ", " + b);
-
-        return new Article(url, title, url, author, "inside.java", date, tags);
+        return extractDisplayName(author);
     }
 
-    public List<Article> fetchInfoQ() {
-        List<Article> results = new ArrayList<>();
-        String url = "https://feed.infoq.com/java";
-        try {
-            SyndFeed feed = fetchFeed(url);
-            for (SyndEntry entry : feed.getEntries()) {
-                String author = entry.getAuthor() != null ? entry.getAuthor().trim() : "";
-                boolean isTracked = TRACKED_AUTHORS.stream()
-                        .anyMatch(a -> author.toLowerCase().contains(a.toLowerCase()));
-                if (!isTracked) continue;
-
-                String articleUrl = entry.getLink();
-                results.add(new Article(
-                        articleUrl, entry.getTitle(), articleUrl, author,
-                        "infoq", toLocalDate(entry.getPublishedDate()), "Java"
-                ));
-            }
-        } catch (Exception e) {
-            log.warning("InfoQ RSS fetch hatası: " + e.getMessage());
-        }
-        return results;
+    private boolean isTrackedAuthor(String author) {
+        if (author == null || author.isEmpty()) return false;
+        return trackedAuthors.stream()
+                .anyMatch(a -> author.toLowerCase().contains(a.toLowerCase()));
     }
 
-    /**
-     * OpenJDK mailing list arşivi.
-     * Pipermail/Hyperkitty standart RSS sunmuyor — bu metot best-effort çalışır.
-     * Boş dönerse Main.java'da MailingListScraper devreye girer.
-     */
-    public List<Article> fetchMailingLists() {
-        List<Article> results = new ArrayList<>();
-
-        List<String[]> lists = List.of(
-                new String[]{"amber-spec-experts",
-                        "https://mail.openjdk.org/archives/list/amber-spec-experts@openjdk.org/feed/"},
-                new String[]{"valhalla-spec-observers",
-                        "https://mail.openjdk.org/archives/list/valhalla-spec-observers@openjdk.org/feed/"},
-                new String[]{"loom-dev",
-                        "https://mail.openjdk.org/archives/list/loom-dev@openjdk.org/feed/"}
-        );
-
-        for (String[] listInfo : lists) {
-            String listName = listInfo[0];
-            String url = listInfo[1];
-            try {
-                SyndFeed feed = fetchFeed(url);
-                for (SyndEntry entry : feed.getEntries()) {
-                    String author = entry.getAuthor() != null ? entry.getAuthor().trim() : "";
-                    // RSS author formatı: "email@domain.com (Display Name)"
-                    String displayName = extractDisplayName(author);
-
-                    boolean isTracked = TRACKED_AUTHORS.stream()
-                            .anyMatch(a -> displayName.toLowerCase().contains(a.toLowerCase()));
-                    if (!isTracked) continue;
-
-                    String articleUrl = entry.getLink();
-                    results.add(new Article(
-                            articleUrl, entry.getTitle(), articleUrl, displayName,
-                            "openjdk-" + listName,
-                            toLocalDate(entry.getPublishedDate()),
-                            listName
-                    ));
-                }
-                log.info(listName + " RSS: " + results.size() + " takip edilen mesaj bulundu.");
-            } catch (Exception e) {
-                log.warning(listName + " RSS fetch hatası: " + e.getMessage());
-            }
-        }
-        return results;
-    }
-
-    private SyndFeed fetchFeed(String url) throws Exception {
-        HttpURLConnection conn = (HttpURLConnection) URI.create(url).toURL().openConnection();
-        conn.setConnectTimeout(CONNECT_TIMEOUT);
-        conn.setReadTimeout(READ_TIMEOUT);
-        conn.setRequestProperty("User-Agent", USER_AGENT);
-        conn.setInstanceFollowRedirects(true);
-        try (XmlReader reader = new XmlReader(conn)) {
-            return new SyndFeedInput().build(reader);
-        }
-    }
-
-    /** "email@domain.com (Display Name)" formatından display name'i çıkarır */
     private String extractDisplayName(String author) {
         if (author == null || author.isEmpty()) return "";
         int parenStart = author.indexOf('(');
@@ -181,6 +184,14 @@ public class RssFetcher {
             return author.substring(parenStart + 1, parenEnd).trim();
         }
         return author;
+    }
+
+    private String extractTags(SyndEntry entry) {
+        if (entry.getCategories() == null || entry.getCategories().isEmpty()) return "";
+        return entry.getCategories().stream()
+                .map(c -> c.getName())
+                .filter(Objects::nonNull)
+                .reduce("", (a, b) -> a.isEmpty() ? b : a + ", " + b);
     }
 
     private LocalDate toLocalDate(Date date) {
