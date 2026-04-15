@@ -23,7 +23,7 @@ public class JepTracker {
     private static final Logger log = Logger.getLogger(JepTracker.class.getName());
     private static final String JEPS_URL = "https://openjdk.org/jeps/0";
     private static final String JEP_STATE_FILE = "jep-state.json";
-    private static final int TIMEOUT = 15_000;
+    private static final int TIMEOUT = 30_000;
 
     private final List<String> trackedProjects;
     private final ObjectMapper json = new ObjectMapper();

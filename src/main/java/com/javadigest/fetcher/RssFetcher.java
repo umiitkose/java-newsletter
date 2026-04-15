@@ -48,7 +48,7 @@ public class RssFetcher {
                     String author = resolveAuthor(entry);
                     if (!isTrackedAuthor(author)) continue;
 
-                    String url = entry.getLink();
+                    String url = cleanUrl(entry.getLink());
                     String tags = extractTags(entry);
                     results.add(new Article(
                             url, entry.getTitle(), url, author,
@@ -85,7 +85,7 @@ public class RssFetcher {
 
                     if (!relevant) continue;
 
-                    String url = entry.getLink();
+                    String url = cleanUrl(entry.getLink());
                     String author = entry.getAuthor() != null ? entry.getAuthor().trim() : "";
                     results.add(new Article(
                             url, title, url, author,
@@ -123,7 +123,7 @@ public class RssFetcher {
 
                     if (!isTrackedAuthor(displayName)) continue;
 
-                    String articleUrl = entry.getLink();
+                    String articleUrl = cleanUrl(entry.getLink());
                     results.add(new Article(
                             articleUrl, entry.getTitle(), articleUrl, displayName,
                             "openjdk-" + ml.getName(),
@@ -192,6 +192,11 @@ public class RssFetcher {
                 .map(c -> c.getName())
                 .filter(Objects::nonNull)
                 .reduce("", (a, b) -> a.isEmpty() ? b : a + ", " + b);
+    }
+
+    private String cleanUrl(String url) {
+        if (url == null) return "";
+        return url.replaceAll("\\s+", "").trim();
     }
 
     private LocalDate toLocalDate(Date date) {
