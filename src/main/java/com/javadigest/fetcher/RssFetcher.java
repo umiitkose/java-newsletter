@@ -68,7 +68,41 @@ public class RssFetcher {
                 results.add(new Article(url, title, url, author, "inside.java", date, tags));
             }
         } catch (Exception e) {
-            log.warning("inside.java RSS fetch hatası: " + e.getMessage());
+            log.warning("inside.java RSS fetch hatası, tekrar deneniyor: " + e.getMessage());
+            try {
+                Thread.sleep(2000);
+                // aynı fetch kodunu tekrar çalıştır
+                SyndFeed feed = new SyndFeedInput().build(new XmlReader(new URL(INSIDE_JAVA_RSS)));
+                for (SyndEntry entry : feed.getEntries()) { /* aynı döngü */ }
+            } catch (Exception retryEx) {
+                log.warning("Retry da başarısız: " + retryEx.getMessage());
+            }
+        }
+        return results;
+    }
+
+    public List<Article> fetchInfoQ() {
+        List<Article> results = new ArrayList<>();
+        // InfoQ Java RSS
+        String url = "https://feed.infoq.com/java";
+        try {
+            SyndFeedInput input = new SyndFeedInput();
+            SyndFeed feed = input.build(new XmlReader(new URL(url)));
+
+            for (SyndEntry entry : feed.getEntries()) {
+                String author = entry.getAuthor() != null ? entry.getAuthor().trim() : "";
+                boolean isTracked = TRACKED_AUTHORS.stream()
+                        .anyMatch(a -> author.toLowerCase().contains(a.toLowerCase()));
+                if (!isTracked) continue;
+
+                String articleUrl = entry.getLink();
+                results.add(new Article(
+                        articleUrl, entry.getTitle(), articleUrl, author,
+                        "infoq", toLocalDate(entry.getPublishedDate()), "Java"
+                ));
+            }
+        } catch (Exception e) {
+            log.warning("InfoQ RSS fetch hatası: " + e.getMessage());
         }
         return results;
     }
@@ -82,9 +116,12 @@ public class RssFetcher {
 
         // OpenJDK listelerinin RSS beslemeleri (Hyperkitty formatı)
         List<String[]> lists = List.of(
-                new String[]{"amber-spec-experts", "https://mail.openjdk.org/hyperkitty/list/amber-spec-experts@openjdk.org/latest/"},
-                new String[]{"valhalla-spec-observers", "https://mail.openjdk.org/hyperkitty/list/valhalla-spec-observers@openjdk.org/latest/"},
-                new String[]{"loom-dev", "https://mail.openjdk.org/hyperkitty/list/loom-dev@openjdk.org/latest/"}
+                new String[]{"amber-spec-experts",
+                        "https://mail.openjdk.org/hyperkitty/list/amber-spec-experts@openjdk.org/latest/?format=rss"},
+                new String[]{"valhalla-spec-observers",
+                        "https://mail.openjdk.org/hyperkitty/list/valhalla-spec-observers@openjdk.org/latest/?format=rss"},
+                new String[]{"loom-dev",
+                        "https://mail.openjdk.org/hyperkitty/list/loom-dev@openjdk.org/latest/?format=rss"}
         );
 
         for (String[] listInfo : lists) {

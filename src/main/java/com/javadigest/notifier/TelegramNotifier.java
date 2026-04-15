@@ -35,14 +35,27 @@ public class TelegramNotifier implements Notifier {
 
     @Override
     public void send(List<Article> articles) throws Exception {
-        if (articles.isEmpty()) {
-            log.info("Telegram: gönderilecek yeni içerik yok.");
+        if (articles.isEmpty()) return;
+
+        String fullMessage = buildMessage(articles);
+
+        // 4096'dan kısaysa tek seferde gönder
+        if (fullMessage.length() <= 4096) {
+            sendMessage(chatId, fullMessage);
             return;
         }
 
-        String message = buildMessage(articles);
-        sendMessage(chatId, message);
-        log.info("Telegram: " + articles.size() + " makale gönderildi.");
+        // Uzunsa her makaleyi ayrı mesaj olarak gönder
+        String header = "☕ *Java Digest — " + java.time.LocalDate.now() + "*\n\n";
+        sendMessage(chatId, header);
+
+        for (Article a : articles) {
+            String msg = "👤 *" + escapeMarkdown(a.author()) + "*\n"
+                    + "[" + escapeMarkdown(a.title()) + "](" + a.url() + ")\n"
+                    + "_" + escapeMarkdown(a.source()) + "_";
+            sendMessage(chatId, msg);
+            Thread.sleep(300); // Telegram rate limit: saniyede 30 mesaj
+        }
     }
 
     private String buildMessage(List<Article> articles) {

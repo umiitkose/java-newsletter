@@ -2,9 +2,16 @@ name: Java Digest — Günlük Özet
 
 on:
   schedule:
-    # Her gün sabah 08:00 UTC (Türkiye: 11:00 yaz, 10:00 kış)
-    - cron: '0 8 * * *'
-  workflow_dispatch:  # Elle de tetiklenebilir (test için)
+    - cron: '0 8 * * *'        # her gün
+    - cron: '0 9 * * 1'        # Pazartesi 09:00 UTC — haftalık özet
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Çalışma modu'
+        required: false
+        default: 'daily'
+        type: choice
+        options: [daily, weekly, test]
 
 jobs:
   digest:
@@ -34,6 +41,7 @@ jobs:
 
       - name: Digest çalıştır
         env:
+          DIGEST_MODE: ${{ github.event.schedule == '0 9 * * 1' && 'weekly' || 'daily' }}
           # ── Telegram ──────────────────────────────────────
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}

@@ -8,6 +8,7 @@ import com.javadigest.notifier.SlackNotifier;
 import com.javadigest.notifier.TelegramNotifier;
 import com.javadigest.state.StateManager;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -18,6 +19,10 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
         log.info("=== Java Digest başlıyor ===");
+        String mode = System.getenv("DIGEST_MODE");
+        if (mode == null) mode = "daily";
+        log.info("Mod: " + mode);
+
 
         // ── 1. Makaleleri topla ──────────────────────────────────────────
         List<Article> allArticles = new ArrayList<>();
@@ -25,12 +30,18 @@ public class Main {
         RssFetcher rss = new RssFetcher();
         allArticles.addAll(rss.fetchInsideJava());
         allArticles.addAll(rss.fetchMailingLists());
-
+        allArticles.addAll(rss.fetchInfoQ());
         // RSS başarısız olursa HTML scraper devreye girer
         if (allArticles.isEmpty()) {
             log.info("RSS boş döndü, scraper deneniyor...");
             MailingListScraper scraper = new MailingListScraper();
             allArticles.addAll(scraper.scrapeRecentMessages());
+        }
+
+        if ("weekly".equals(mode)) {
+            allArticles = allArticles.stream()
+                    .filter(a -> a.publishedDate().isAfter(LocalDate.now().minusDays(7)))
+                    .toList();
         }
 
         log.info("Toplam çekilen: " + allArticles.size() + " makale");

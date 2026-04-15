@@ -68,7 +68,14 @@ public class SlackNotifier implements Notifier {
     @Override
     public void send(List<Article> articles) throws Exception {
         if (articles.isEmpty()) {
-            log.info("Slack: gönderilecek yeni içerik yok.");
+            String webhookUrl = channelWebhooks.get("general");
+            if (webhookUrl != null) {
+                String payload = json.writeValueAsString(Map.of(
+                        "text", "☕ _Java Digest: " + java.time.LocalDate.now()
+                                + " için takip edilen kaynaklarda yeni içerik yok._"
+                ));
+                postToWebhook(webhookUrl, payload);
+            }
             return;
         }
 
