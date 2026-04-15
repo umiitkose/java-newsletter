@@ -106,7 +106,8 @@ public class Main {
             // Telegram
             String telegramToken = System.getenv("TELEGRAM_BOT_TOKEN");
             String telegramChatId = System.getenv("TELEGRAM_CHAT_ID");
-            if (telegramToken != null && telegramChatId != null) {
+            if (telegramToken != null && !telegramToken.isBlank()
+                    && telegramChatId != null && !telegramChatId.isBlank()) {
                 try {
                     Notifier telegram = new TelegramNotifier(telegramToken, telegramChatId);
                     telegram.send(newArticles);

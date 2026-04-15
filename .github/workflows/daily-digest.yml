@@ -64,5 +64,7 @@ jobs:
           git add state.json jep-state.json docs/ || true
           git diff --staged --quiet && exit 0
           git commit -m "chore: digest güncellendi [$(date +'%Y-%m-%d')]"
+          git checkout -- . 2>/dev/null || true
+          git clean -fd 2>/dev/null || true
           git pull --rebase origin main
           git push
