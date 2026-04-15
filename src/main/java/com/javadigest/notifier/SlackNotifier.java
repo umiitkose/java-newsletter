@@ -143,7 +143,8 @@ public class SlackNotifier implements Notifier {
         // Her makale için bir section
         for (Article a : articles) {
             String text = "*<" + a.url() + "|" + a.title() + ">*\n"
-                    + "👤 " + a.author() + "  |  🗂 " + a.source();
+                    + "👤 " + a.author() + "  |  🗂 " + a.source()
+                    + "  |  📅 " + a.publishedDate();
 
             if (a.tags() != null && !a.tags().isBlank()) {
                 text += "\n🏷 _" + a.tags() + "_";

@@ -58,6 +58,7 @@ public class DiscordNotifier implements Notifier {
             String line = "**[" + a.title() + "](" + a.url() + ")**\n"
                     + (a.author().isEmpty() ? "" : "👤 " + a.author() + " | ")
                     + "🗂 " + a.source()
+                    + " | 📅 " + a.publishedDate()
                     + (a.tags() != null && !a.tags().isBlank() ? " | 🏷 " + a.tags() : "")
                     + "\n\n";
 

@@ -50,7 +50,8 @@ public class TelegramNotifier implements Notifier {
         for (Article a : articles) {
             String msg = "👤 *" + escapeMarkdown(a.author()) + "*\n"
                     + "[" + escapeMarkdown(a.title()) + "](" + a.url() + ")\n"
-                    + "_" + escapeMarkdown(a.source()) + "_";
+                    + "_" + escapeMarkdown(a.source()) + "_"
+                    + "  •  📅 " + a.publishedDate();
             sendMessage(msg);
             Thread.sleep(300);
         }
@@ -67,9 +68,11 @@ public class TelegramNotifier implements Notifier {
                     sb.append("👤 *").append(escapeMarkdown(author)).append("*\n");
                     for (Article a : items) {
                         sb.append("  • [").append(escapeMarkdown(a.title())).append("](").append(a.url()).append(")\n");
+                        sb.append("    📅 ").append(a.publishedDate());
                         if (a.tags() != null && !a.tags().isBlank()) {
-                            sb.append("    _").append(escapeMarkdown(a.tags())).append("_\n");
+                            sb.append(" · _").append(escapeMarkdown(a.tags())).append("_");
                         }
+                        sb.append("\n");
                     }
                     sb.append("\n");
                 });
