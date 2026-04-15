@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="RemoteRepositoriesConfiguration">
+    <remote-repository>
+      <option name="id" value="snapshots" />
+      <option name="name" value="snapshots" />
+      <option name="url" value="http://10.101.55.61:8086/repository/snapshots/" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="servisler" />
+      <option name="name" value="servisler" />
+      <option name="url" value="http://10.101.55.61:8086/repository/servisler/" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="wsdl" />
+      <option name="name" value="wsdl" />
+      <option name="url" value="http://10.101.55.61:8086/repository/wsdl/" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="thirdparty" />
+      <option name="name" value="thirdparty" />
+      <option name="url" value="http://10.101.55.61:8086/repository/thirdparty/" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="central" />
+      <option name="name" value="Maven Central repository" />
+      <option name="url" value="https://repo1.maven.org/maven2" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="jboss.community" />
+      <option name="name" value="JBoss Community repository" />
+      <option name="url" value="https://repository.jboss.org/nexus/content/repositories/public/" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="central" />
+      <option name="name" value="central" />
+      <option name="url" value="https://repo.maven.apache.org/maven2/" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="portal" />
+      <option name="name" value="portal" />
+      <option name="url" value="http://10.101.55.61:8086/repository/portal/" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="Statics" />
+      <option name="name" value="Statics" />
+      <option name="url" value="http://10.101.55.61:8086/repository/Statics/" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="releases" />
+      <option name="name" value="releases" />
+      <option name="url" value="http://10.101.55.61:8086/repository/releases/" />
+    </remote-repository>
+  </component>
+</project>
