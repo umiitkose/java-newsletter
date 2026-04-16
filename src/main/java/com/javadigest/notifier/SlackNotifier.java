@@ -70,7 +70,11 @@ public class SlackNotifier {
         }
     }
 
-    public void sendDigest(List<Article> articles, String generalSummary) throws Exception {
+    public void sendDigest(
+            List<Article> articles,
+            String generalSummary,
+            Map<String, String> articleSummaries
+    ) throws Exception {
         if (articles.isEmpty()) {
             String webhookUrl = channelWebhooks.get("general");
             if (webhookUrl != null) {
@@ -98,7 +102,7 @@ public class SlackNotifier {
                 continue;
             }
 
-            String payload = buildPayload(channelKey, channelArticles, generalSummary);
+            String payload = buildPayload(channelKey, channelArticles, generalSummary, articleSummaries);
             postToWebhook(webhookUrl, payload);
             log.info("Slack #" + channelKey + ": " + channelArticles.size() + " makale gönderildi.");
         }
@@ -124,7 +128,12 @@ public class SlackNotifier {
     }
 
     /** Slack Block Kit formatında özet odaklı mesaj oluştur */
-    private String buildPayload(String channelKey, List<Article> articles, String generalSummary) throws Exception {
+    private String buildPayload(
+            String channelKey,
+            List<Article> articles,
+            String generalSummary,
+            Map<String, String> articleSummaries
+    ) throws Exception {
         String emoji = channelEmoji(channelKey);
         List<Map<String, Object>> blocks = new ArrayList<>();
 
@@ -151,7 +160,7 @@ public class SlackNotifier {
         blocks.add(Map.of("type", "divider"));
 
         // Kaynak bazlı linksiz kısa maddeler
-        String highlights = buildSourceHighlights(articles);
+        String highlights = buildSourceHighlights(articles, articleSummaries);
         blocks.add(Map.of(
                 "type", "section",
                 "text", Map.of("type", "mrkdwn", "text", highlights)
@@ -169,7 +178,7 @@ public class SlackNotifier {
         return json.writeValueAsString(Map.of("blocks", blocks));
     }
 
-    private String buildSourceHighlights(List<Article> articles) {
+    private String buildSourceHighlights(List<Article> articles, Map<String, String> articleSummaries) {
         Map<String, List<Article>> bySource = articles.stream()
                 .sorted(Comparator.comparing(Article::publishedDate).reversed())
                 .collect(Collectors.groupingBy(Article::source));
@@ -179,17 +188,36 @@ public class SlackNotifier {
             sb.append("• *").append(source).append("*\n");
             sourceArticles.stream()
                     .limit(6)
-                    .forEach(a -> sb.append("  - ")
-                            .append(a.title())
-                            .append(" — ")
-                            .append(a.author() == null || a.author().isBlank() ? "Bilinmeyen yazar" : a.author())
-                            .append(", ")
-                            .append(a.publishedDate())
-                            .append("\n    ")
-                            .append(a.url())
-                            .append("\n"));
+                    .forEach(a -> {
+                        sb.append("  - ")
+                                .append(a.title())
+                                .append(" — ")
+                                .append(a.author() == null || a.author().isBlank() ? "Bilinmeyen yazar" : a.author())
+                                .append(", ")
+                                .append(a.publishedDate());
+
+                        String summary = resolveArticleSummary(a, articleSummaries);
+                        if (summary != null && !summary.isBlank()) {
+                            sb.append("\n    Özet: ").append(summary);
+                        }
+
+                        sb.append("\n    ")
+                                .append(a.url())
+                                .append("\n");
+                    });
         });
         return sb.toString();
+    }
+
+    private String resolveArticleSummary(Article article, Map<String, String> articleSummaries) {
+        if (articleSummaries == null || articleSummaries.isEmpty()) {
+            return null;
+        }
+        String summary = articleSummaries.get(article.stateKey());
+        if (summary == null || summary.isBlank()) {
+            return null;
+        }
+        return summary.replace('\n', ' ').trim();
     }
 
     private String buildFallbackSummary(List<Article> articles) {

@@ -14,6 +14,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -23,6 +25,10 @@ import java.util.logging.Logger;
 public class Main {
 
     private static final Logger log = Logger.getLogger(Main.class.getName());
+    private static final Set<String> PRIORITY_PROJECTS = Set.of(
+            "amber", "valhalla", "loom", "panama", "leyden", "openjdk-jep"
+    );
+    private static final int DEFAULT_SUMMARY_LIMIT = 12;
 
     public static void main(String[] args) throws Exception {
         log.info("=== Java Digest başlıyor ===");
@@ -104,14 +110,19 @@ public class Main {
             }
 
             // ── 3. AI Özet (aktif değilse deterministik fallback) ───────────
+            int summaryLimit = readSummaryLimit();
+            List<Article> summaryCandidates = pickSummaryCandidates(newArticles, summaryLimit);
+            log.info("AI ozetleme kapsamı: " + summaryCandidates.size() + " makale (limit=" + summaryLimit + ").");
+
             AISummarizer summarizer = new AISummarizer(
                     config.getAi().getProvider(),
                     config.getAi().isEnabled()
             );
-            String aiSummary = summarizer.summarize(newArticles);
+            String aiSummary = summarizer.summarize(summaryCandidates);
             if (!aiSummary.isBlank()) {
                 log.info("Özet oluşturuldu (" + aiSummary.length() + " karakter).");
             }
+            Map<String, String> perArticleSummaries = summarizer.summarizePerArticle(summaryCandidates);
 
             // ── 4. Slack bildirimi gönder ───────────────────────────────────
             boolean hasError = false;
@@ -119,7 +130,7 @@ public class Main {
             SlackNotifier slack = SlackNotifier.fromEnv();
             if (slack.hasWebhooks()) {
                 try {
-                    slack.sendDigest(newArticles, aiSummary);
+                    slack.sendDigest(newArticles, aiSummary, perArticleSummaries);
                 } catch (Exception e) {
                     log.warning("Slack gönderilemedi: " + e.getMessage());
                     hasError = true;
@@ -149,5 +160,37 @@ public class Main {
         } finally {
             executor.shutdown();
         }
+    }
+
+    private static int readSummaryLimit() {
+        String env = System.getenv("SUMMARY_MAX_ARTICLES");
+        if (env == null || env.isBlank()) return DEFAULT_SUMMARY_LIMIT;
+        try {
+            return Math.max(1, Integer.parseInt(env.trim()));
+        } catch (NumberFormatException e) {
+            return DEFAULT_SUMMARY_LIMIT;
+        }
+    }
+
+    private static List<Article> pickSummaryCandidates(List<Article> articles, int limit) {
+        List<Article> prioritized = articles.stream()
+                .filter(Main::isPriorityProjectArticle)
+                .sorted(Comparator.comparing(Article::publishedDate).reversed())
+                .limit(limit)
+                .toList();
+        if (!prioritized.isEmpty()) {
+            return prioritized;
+        }
+        return articles.stream()
+                .sorted(Comparator.comparing(Article::publishedDate).reversed())
+                .limit(limit)
+                .toList();
+    }
+
+    private static boolean isPriorityProjectArticle(Article article) {
+        String source = article.source() != null ? article.source().toLowerCase() : "";
+        String tags = article.tags() != null ? article.tags().toLowerCase() : "";
+        String combined = source + " " + tags;
+        return PRIORITY_PROJECTS.stream().anyMatch(combined::contains);
     }
 }
