@@ -182,6 +182,8 @@ public class SlackNotifier {
                             .append(a.author() == null || a.author().isBlank() ? "Bilinmeyen yazar" : a.author())
                             .append(", ")
                             .append(a.publishedDate())
+                            .append("\n    ")
+                            .append(a.url())
                             .append("\n"));
         });
         return sb.toString();
