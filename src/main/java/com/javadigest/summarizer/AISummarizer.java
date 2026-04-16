@@ -83,7 +83,7 @@ public class AISummarizer {
     private String callOpenAI(String prompt) throws Exception {
         String apiKey = System.getenv("OPENAI_API_KEY");
         if (apiKey == null || apiKey.isBlank()) {
-            log.fine("OPENAI_API_KEY tanımlı değil, özet atlanıyor.");
+            log.warning("OPENAI_API_KEY tanımlı değil, OpenAI özeti atlanıyor.");
             return "";
         }
 
@@ -146,7 +146,7 @@ public class AISummarizer {
     private String callGemini(String prompt) throws Exception {
         String apiKey = System.getenv("GEMINI_API_KEY");
         if (apiKey == null || apiKey.isBlank()) {
-            log.fine("GEMINI_API_KEY tanımlı değil, özet atlanıyor.");
+            log.warning("GEMINI_API_KEY tanımlı değil, Gemini özeti atlanıyor.");
             return "";
         }
 

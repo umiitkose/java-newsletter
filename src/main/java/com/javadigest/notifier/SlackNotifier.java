@@ -137,9 +137,12 @@ public class SlackNotifier {
 
         blocks.add(Map.of("type", "divider"));
 
-        String effectiveSummary = generalSummary != null && !generalSummary.isBlank()
-                ? generalSummary
-                : buildFallbackSummary(articles);
+        String effectiveSummary;
+        if ("general".equals(channelKey) && generalSummary != null && !generalSummary.isBlank()) {
+            effectiveSummary = generalSummary;
+        } else {
+            effectiveSummary = buildFallbackSummary(articles);
+        }
         blocks.add(Map.of(
                 "type", "section",
                 "text", Map.of("type", "mrkdwn", "text", "*Genel Özet*\n" + effectiveSummary)

@@ -45,6 +45,7 @@ jobs:
       - name: Digest çalıştır
         env:
           DIGEST_MODE: ${{ github.event.schedule == '0 9 * * 1' && 'weekly' || inputs.mode || 'daily' }}
+          FORCE_SUMMARY: ${{ inputs.mode == 'test' && 'true' || 'false' }}
           SLACK_WEBHOOK_GENERAL:  ${{ secrets.SLACK_WEBHOOK_GENERAL }}
           SLACK_WEBHOOK_AMBER:    ${{ secrets.SLACK_WEBHOOK_AMBER }}
           SLACK_WEBHOOK_VALHALLA: ${{ secrets.SLACK_WEBHOOK_VALHALLA }}

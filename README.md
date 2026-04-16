@@ -125,6 +125,8 @@ Repo → **Settings → Secrets and variables → Actions → New repository sec
 Actions sekmesinden **"Java Digest — Günlük Özet"** workflow'unu seç →
 **Run workflow** ile manuel tetikle.
 
+`mode=test` ile çalıştırırsan `FORCE_SUMMARY` otomatik açılır; yeni içerik olmasa bile son içeriklerden test amaçlı Slack özeti gönderilir. Bu modda `state.json` ve `docs/` güncellenmez.
+
 ---
 
 ## Çalışma Zamanı

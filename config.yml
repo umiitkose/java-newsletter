@@ -80,8 +80,8 @@ jep:
     - Lilliput
 
 ai:
-  enabled: false
-  provider: openai
+  enabled: true
+  provider: gemini
 
 pages:
   enabled: true
