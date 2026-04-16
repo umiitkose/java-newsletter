@@ -45,16 +45,15 @@ jobs:
       - name: Digest çalıştır
         env:
           DIGEST_MODE: ${{ github.event.schedule == '0 9 * * 1' && 'weekly' || inputs.mode || 'daily' }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
           SLACK_WEBHOOK_GENERAL:  ${{ secrets.SLACK_WEBHOOK_GENERAL }}
           SLACK_WEBHOOK_AMBER:    ${{ secrets.SLACK_WEBHOOK_AMBER }}
           SLACK_WEBHOOK_VALHALLA: ${{ secrets.SLACK_WEBHOOK_VALHALLA }}
           SLACK_WEBHOOK_LOOM:     ${{ secrets.SLACK_WEBHOOK_LOOM }}
           SLACK_WEBHOOK_LEYDEN:   ${{ secrets.SLACK_WEBHOOK_LEYDEN }}
           SLACK_WEBHOOK_PANAMA:   ${{ secrets.SLACK_WEBHOOK_PANAMA }}
-          DISCORD_WEBHOOK_URL:    ${{ secrets.DISCORD_WEBHOOK_URL }}
           OPENAI_API_KEY:         ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY:         ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL:           ${{ vars.GEMINI_MODEL }}
         run: java -jar target/java-digest-1.0-SNAPSHOT.jar
 
       - name: Değişiklikleri commit + push

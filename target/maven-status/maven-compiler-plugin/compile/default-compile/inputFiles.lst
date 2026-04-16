@@ -5,9 +5,6 @@
 /Users/umitkose/Desktop/java-digest/src/main/java/com/javadigest/fetcher/RssFetcher.java
 /Users/umitkose/Desktop/java-digest/src/main/java/com/javadigest/generator/DigestPageGenerator.java
 /Users/umitkose/Desktop/java-digest/src/main/java/com/javadigest/model/Article.java
-/Users/umitkose/Desktop/java-digest/src/main/java/com/javadigest/notifier/DiscordNotifier.java
-/Users/umitkose/Desktop/java-digest/src/main/java/com/javadigest/notifier/Notifier.java
 /Users/umitkose/Desktop/java-digest/src/main/java/com/javadigest/notifier/SlackNotifier.java
-/Users/umitkose/Desktop/java-digest/src/main/java/com/javadigest/notifier/TelegramNotifier.java
 /Users/umitkose/Desktop/java-digest/src/main/java/com/javadigest/state/StateManager.java
 /Users/umitkose/Desktop/java-digest/src/main/java/com/javadigest/summarizer/AISummarizer.java

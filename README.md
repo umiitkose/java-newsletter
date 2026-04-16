@@ -2,7 +2,7 @@
 
 Java ekosisteminin önemli mimarlarının (Brian Goetz, Ron Pressler, Gavin Bierman ve diğerleri)
 yeni yazılarını, mailing list mesajlarını ve JEP durum değişikliklerini takip edip
-her gün **Telegram**, **Slack** ve **Discord**'a özetleyen bot.
+her gün **Slack** kanalına linksiz Türkçe özet olarak yayınlayan bot.
 
 ## Takip Edilen Kaynaklar
 
@@ -31,6 +31,7 @@ her gün **Telegram**, **Slack** ve **Discord**'a özetleyen bot.
 | Kaynak | Açıklama |
 |--------|----------|
 | [dev.java](https://dev.java) | Oracle resmi Java geliştirici portali |
+| [Java Almanac](https://javaalmanac.io) | Java sürüm ve platform değişiklikleri (GitHub Atom feed) |
 | [Foojay.io](https://foojay.io) | Java topluluk haberleri, JEP analizleri |
 | [Baeldung](https://www.baeldung.com) | Java tutorial ve derinlemesine yazılar |
 | [DZone Java](https://dzone.com/java) | Java zone makaleleri |
@@ -80,21 +81,11 @@ keywords:        # topluluk blogları için anahtar kelime filtresi
 rss:             # RSS kaynakları (authorFiltered + community)
 mailingLists:    # OpenJDK mailing listleri
 jep:             # JEP durum takibi (enabled: true/false)
-ai:              # AI özet (enabled: true/false, provider: openai/ollama)
+ai:              # AI özet (enabled: true/false, provider: openai/gemini/ollama)
 pages:           # GitHub Pages (enabled: true/false, outputDir: docs)
 ```
 
-### 3. Telegram Bot Kur
-
-1. Telegram'da [@BotFather](https://t.me/botfather)'a yaz
-2. `/newbot` komutuyla yeni bot oluştur → **BOT_TOKEN** al
-3. Bota mesaj at, sonra şu URL'den chat ID'ni bul:
-   ```
-   https://api.telegram.org/bot<BOT_TOKEN>/getUpdates
-   ```
-4. Kanal kullanacaksan: botu kanala admin olarak ekle, chat ID'si `-100...` formatında başlar
-
-### 4. Slack Webhook Kur (opsiyonel)
+### 3. Slack Webhook Kur
 
 Her kanal için ayrı webhook oluştur:
 
@@ -112,31 +103,24 @@ Her kanal için ayrı webhook oluştur:
 #java-panama    → Native Interop, Vector API
 ```
 
-### 5. Discord Webhook Kur (opsiyonel)
-
-1. Discord sunucunda bir kanal seç → **Edit Channel → Integrations → Webhooks**
-2. **New Webhook** oluştur → URL'yi kopyala
-
-### 6. GitHub Secrets Ekle
+### 4. GitHub Secrets Ekle
 
 Repo → **Settings → Secrets and variables → Actions → New repository secret**
 
 | Secret Adı | Açıklama | Zorunlu |
 |------------|----------|---------|
-| `TELEGRAM_BOT_TOKEN` | BotFather'dan alınan token | Hayır |
-| `TELEGRAM_CHAT_ID` | Kanal veya kullanıcı ID'si | Hayır |
-| `SLACK_WEBHOOK_GENERAL` | Genel kanal webhook | Hayır |
+| `SLACK_WEBHOOK_GENERAL` | Genel kanal webhook | Evet |
 | `SLACK_WEBHOOK_AMBER` | #java-amber | Hayır |
 | `SLACK_WEBHOOK_VALHALLA` | #java-valhalla | Hayır |
 | `SLACK_WEBHOOK_LOOM` | #java-loom | Hayır |
 | `SLACK_WEBHOOK_LEYDEN` | #java-leyden | Hayır |
 | `SLACK_WEBHOOK_PANAMA` | #java-panama | Hayır |
-| `DISCORD_WEBHOOK_URL` | Discord webhook URL'si | Hayır |
-| `OPENAI_API_KEY` | AI özet için OpenAI API key | Hayır |
+| `OPENAI_API_KEY` | LLM özet için OpenAI API key | Hayır |
+| `GEMINI_API_KEY` | LLM özet için Gemini API key | Hayır |
 
-> En az bir bildirim kanalı (Telegram, Slack veya Discord) yapılandırılmalıdır.
+> Uygulama sadece Slack'e yayın yapar.
 
-### 7. İlk çalıştırma
+### 5. İlk çalıştırma
 
 Actions sekmesinden **"Java Digest — Günlük Özet"** workflow'unu seç →
 **Run workflow** ile manuel tetikle.
@@ -157,18 +141,22 @@ Değiştirmek için `.github/workflows/daily-digest.yml` içindeki cron satırı
 ## Yerel Test
 
 ```bash
-# Minimum: sadece makale toplama (bildirim kanalı olmadan da çalışır)
+# Minimum: sadece makale toplama
 mvn package -q
 java -jar target/java-digest-1.0-SNAPSHOT.jar
 
-# Bildirim kanallarıyla:
-export TELEGRAM_BOT_TOKEN="..."
-export TELEGRAM_CHAT_ID="..."
-export DISCORD_WEBHOOK_URL="..."
+# Slack yayın ile:
+export SLACK_WEBHOOK_GENERAL="..."
 java -jar target/java-digest-1.0-SNAPSHOT.jar
 
 # AI özet aktif (config.yml'da ai.enabled: true olmalı):
 export OPENAI_API_KEY="sk-..."
+java -jar target/java-digest-1.0-SNAPSHOT.jar
+
+# Gemini ile AI özet:
+# config.yml -> ai.provider: gemini
+export GEMINI_API_KEY="..."
+export GEMINI_MODEL="gemini-2.5-flash"   # opsiyonel
 java -jar target/java-digest-1.0-SNAPSHOT.jar
 ```
 
@@ -193,12 +181,9 @@ GitHub Actions (cron — günlük/haftalık)
     │   └── JepTracker                     → JEP durum değişikliklerini izle
     │
     ├── StateManager ──────── state.json ile tekrar gönderimi önle
-    ├── AISummarizer ──────── OpenAI / Ollama ile günlük özet (opsiyonel)
+    ├── AISummarizer ──────── OpenAI / Gemini / Ollama ile Turkce ozet (hata durumunda fallback)
     │
-    ├── Bildirim Kanalları
-    │   ├── TelegramNotifier → tek mesaj, yazara göre gruplu
-    │   ├── SlackNotifier    → proje tag'ine göre kanallara dağıt
-    │   └── DiscordNotifier  → embed formatında zengin mesajlar
+    ├── SlackNotifier ─────── linksiz genel ozet + kaynak bazli maddeler
     │
     └── DigestPageGenerator ── docs/ klasörüne Markdown arşiv sayfası
 ```
@@ -228,10 +213,7 @@ java-digest/
     ├── model/
     │   └── Article.java
     ├── notifier/
-    │   ├── Notifier.java
-    │   ├── TelegramNotifier.java
-    │   ├── SlackNotifier.java
-    │   └── DiscordNotifier.java
+    │   └── SlackNotifier.java
     ├── state/
     │   └── StateManager.java
     └── summarizer/

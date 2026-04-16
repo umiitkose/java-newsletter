@@ -6,10 +6,7 @@ import com.javadigest.fetcher.MailingListScraper;
 import com.javadigest.fetcher.RssFetcher;
 import com.javadigest.generator.DigestPageGenerator;
 import com.javadigest.model.Article;
-import com.javadigest.notifier.DiscordNotifier;
-import com.javadigest.notifier.Notifier;
 import com.javadigest.notifier.SlackNotifier;
-import com.javadigest.notifier.TelegramNotifier;
 import com.javadigest.state.StateManager;
 import com.javadigest.summarizer.AISummarizer;
 
@@ -90,59 +87,29 @@ public class Main {
                 return;
             }
 
-            // ── 3. AI Özet (opsiyonel) ───────────────────────────────────────
-            String aiSummary = "";
-            if (config.getAi().isEnabled()) {
-                AISummarizer summarizer = new AISummarizer(config.getAi().getProvider());
-                aiSummary = summarizer.summarize(newArticles);
-                if (!aiSummary.isEmpty()) {
-                    log.info("AI özet oluşturuldu (" + aiSummary.length() + " karakter).");
-                }
+            // ── 3. AI Özet (aktif değilse deterministik fallback) ───────────
+            AISummarizer summarizer = new AISummarizer(
+                    config.getAi().getProvider(),
+                    config.getAi().isEnabled()
+            );
+            String aiSummary = summarizer.summarize(newArticles);
+            if (!aiSummary.isBlank()) {
+                log.info("Özet oluşturuldu (" + aiSummary.length() + " karakter).");
             }
 
-            // ── 4. Bildirim gönder ───────────────────────────────────────────
+            // ── 4. Slack bildirimi gönder ───────────────────────────────────
             boolean hasError = false;
 
-            // Telegram
-            String telegramToken = System.getenv("TELEGRAM_BOT_TOKEN");
-            String telegramChatId = System.getenv("TELEGRAM_CHAT_ID");
-            if (telegramToken != null && !telegramToken.isBlank()
-                    && telegramChatId != null && !telegramChatId.isBlank()) {
-                try {
-                    Notifier telegram = new TelegramNotifier(telegramToken, telegramChatId);
-                    telegram.send(newArticles);
-                } catch (Exception e) {
-                    log.warning("Telegram gönderilemedi: " + e.getMessage());
-                    hasError = true;
-                }
-            } else {
-                log.warning("TELEGRAM_BOT_TOKEN veya TELEGRAM_CHAT_ID eksik, atlanıyor.");
-            }
-
-            // Slack
             SlackNotifier slack = SlackNotifier.fromEnv();
             if (slack.hasWebhooks()) {
                 try {
-                    slack.send(newArticles);
+                    slack.sendDigest(newArticles, aiSummary);
                 } catch (Exception e) {
                     log.warning("Slack gönderilemedi: " + e.getMessage());
                     hasError = true;
                 }
             } else {
                 log.info("Slack webhook yapılandırılmamış, atlanıyor.");
-            }
-
-            // Discord
-            DiscordNotifier discord = DiscordNotifier.fromEnv();
-            if (discord != null) {
-                try {
-                    discord.send(newArticles);
-                } catch (Exception e) {
-                    log.warning("Discord gönderilemedi: " + e.getMessage());
-                    hasError = true;
-                }
-            } else {
-                log.info("Discord webhook yapılandırılmamış, atlanıyor.");
             }
 
             // ── 5. GitHub Pages sayfası oluştur ──────────────────────────────

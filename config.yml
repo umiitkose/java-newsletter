@@ -36,6 +36,8 @@ rss:
   community:
     - name: dev.java
       url: https://dev.java/feed.xml
+    - name: javaalmanac
+      url: https://github.com/marchof/java-almanac/commits/main.atom
     - name: foojay
       url: https://foojay.io/feed/
     - name: baeldung

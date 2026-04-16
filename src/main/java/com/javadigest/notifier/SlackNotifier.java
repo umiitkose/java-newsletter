@@ -8,6 +8,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -26,7 +27,7 @@ import java.util.stream.Collectors;
  *
  * Slack Incoming Webhook URL'lerini GitHub Secrets'a ekle.
  */
-public class SlackNotifier implements Notifier {
+public class SlackNotifier {
 
     private static final Logger log = Logger.getLogger(SlackNotifier.class.getName());
 
@@ -69,8 +70,7 @@ public class SlackNotifier implements Notifier {
         }
     }
 
-    @Override
-    public void send(List<Article> articles) throws Exception {
+    public void sendDigest(List<Article> articles, String generalSummary) throws Exception {
         if (articles.isEmpty()) {
             String webhookUrl = channelWebhooks.get("general");
             if (webhookUrl != null) {
@@ -98,7 +98,7 @@ public class SlackNotifier implements Notifier {
                 continue;
             }
 
-            String payload = buildPayload(channelKey, channelArticles);
+            String payload = buildPayload(channelKey, channelArticles, generalSummary);
             postToWebhook(webhookUrl, payload);
             log.info("Slack #" + channelKey + ": " + channelArticles.size() + " makale gönderildi.");
         }
@@ -123,12 +123,9 @@ public class SlackNotifier implements Notifier {
         }));
     }
 
-    /** Slack Block Kit formatında mesaj oluştur */
-    private String buildPayload(String channelKey, List<Article> articles) throws Exception {
+    /** Slack Block Kit formatında özet odaklı mesaj oluştur */
+    private String buildPayload(String channelKey, List<Article> articles, String generalSummary) throws Exception {
         String emoji = channelEmoji(channelKey);
-        String header = emoji + " *Java " + capitalize(channelKey) + " Digest*  —  " +
-                java.time.LocalDate.now();
-
         List<Map<String, Object>> blocks = new ArrayList<>();
 
         // Başlık bloğu
@@ -140,21 +137,22 @@ public class SlackNotifier implements Notifier {
 
         blocks.add(Map.of("type", "divider"));
 
-        // Her makale için bir section
-        for (Article a : articles) {
-            String text = "*<" + a.url() + "|" + a.title() + ">*\n"
-                    + "👤 " + a.author() + "  |  🗂 " + a.source()
-                    + "  |  📅 " + a.publishedDate();
+        String effectiveSummary = generalSummary != null && !generalSummary.isBlank()
+                ? generalSummary
+                : buildFallbackSummary(articles);
+        blocks.add(Map.of(
+                "type", "section",
+                "text", Map.of("type", "mrkdwn", "text", "*Genel Özet*\n" + effectiveSummary)
+        ));
 
-            if (a.tags() != null && !a.tags().isBlank()) {
-                text += "\n🏷 _" + a.tags() + "_";
-            }
+        blocks.add(Map.of("type", "divider"));
 
-            blocks.add(Map.of(
-                    "type", "section",
-                    "text", Map.of("type", "mrkdwn", "text", text)
-            ));
-        }
+        // Kaynak bazlı linksiz kısa maddeler
+        String highlights = buildSourceHighlights(articles);
+        blocks.add(Map.of(
+                "type", "section",
+                "text", Map.of("type", "mrkdwn", "text", highlights)
+        ));
 
         blocks.add(Map.of("type", "divider"));
         blocks.add(Map.of(
@@ -166,6 +164,41 @@ public class SlackNotifier implements Notifier {
         ));
 
         return json.writeValueAsString(Map.of("blocks", blocks));
+    }
+
+    private String buildSourceHighlights(List<Article> articles) {
+        Map<String, List<Article>> bySource = articles.stream()
+                .sorted(Comparator.comparing(Article::publishedDate).reversed())
+                .collect(Collectors.groupingBy(Article::source));
+
+        StringBuilder sb = new StringBuilder("*Kaynak Bazlı Notlar*\n");
+        bySource.forEach((source, sourceArticles) -> {
+            sb.append("• *").append(source).append("*\n");
+            sourceArticles.stream()
+                    .limit(6)
+                    .forEach(a -> sb.append("  - ")
+                            .append(a.title())
+                            .append(" — ")
+                            .append(a.author() == null || a.author().isBlank() ? "Bilinmeyen yazar" : a.author())
+                            .append(", ")
+                            .append(a.publishedDate())
+                            .append("\n"));
+        });
+        return sb.toString();
+    }
+
+    private String buildFallbackSummary(List<Article> articles) {
+        String sources = articles.stream()
+                .map(Article::source)
+                .filter(s -> s != null && !s.isBlank())
+                .distinct()
+                .sorted()
+                .limit(4)
+                .collect(Collectors.joining(", "));
+        return "Bugün " + articles.size() + " yeni Java içeriği derlendi. "
+                + (sources.isBlank()
+                ? "Öne çıkan başlıklar proje gelişmeleri, arayüz iyileştirmeleri ve topluluk duyuruları üzerine."
+                : "Öne çıkan kaynaklar: " + sources + ". İçerikler ağırlıkla JVM, dil özellikleri ve araç ekosistemindeki yenilikleri kapsıyor.");
     }
 
     private void postToWebhook(String webhookUrl, String payload) throws Exception {

@@ -80,8 +80,7 @@ public class RssFetcher {
                     String tags = extractTags(entry);
                     String combined = (title + " " + tags).toLowerCase();
 
-                    boolean relevant = isTrackedAuthor(resolveAuthor(entry))
-                            || keywords.stream().anyMatch(k -> combined.contains(k.toLowerCase()));
+                    boolean relevant = shouldIncludeCommunityEntry(source, entry, combined);
 
                     if (!relevant) continue;
 
@@ -103,6 +102,16 @@ public class RssFetcher {
             }
         }
         return results;
+    }
+
+    private boolean shouldIncludeCommunityEntry(DigestConfig.RssSource source, SyndEntry entry, String combined) {
+        String sourceName = source.getName() != null ? source.getName().toLowerCase() : "";
+        if ("dev.java".equals(sourceName) || "javaalmanac".equals(sourceName)) {
+            // Bu iki kaynağı filtrelemeden dinleyerek güncellemeleri kaçırmıyoruz.
+            return true;
+        }
+        return isTrackedAuthor(resolveAuthor(entry))
+                || keywords.stream().anyMatch(k -> combined.contains(k.toLowerCase()));
     }
 
     /**
