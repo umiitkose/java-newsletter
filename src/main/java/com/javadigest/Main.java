@@ -13,6 +13,7 @@ import com.javadigest.summarizer.AISummarizer;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,7 +29,9 @@ public class Main {
     private static final Set<String> PRIORITY_PROJECTS = Set.of(
             "amber", "valhalla", "loom", "panama", "leyden", "openjdk-jep"
     );
+    private static final Set<String> DETAILED_PROJECT_CHANNELS = Set.of("amber", "valhalla");
     private static final int DEFAULT_SUMMARY_LIMIT = 12;
+    private static final int DEFAULT_PROJECT_DETAIL_LIMIT = 20;
 
     public static void main(String[] args) throws Exception {
         log.info("=== Java Digest başlıyor ===");
@@ -123,6 +126,7 @@ public class Main {
                 log.info("Özet oluşturuldu (" + aiSummary.length() + " karakter).");
             }
             Map<String, String> perArticleSummaries = summarizer.summarizePerArticle(summaryCandidates);
+            Map<String, String> channelDetailedSummaries = buildDetailedChannelSummaries(summarizer, newArticles);
 
             // ── 4. Slack bildirimi gönder ───────────────────────────────────
             boolean hasError = false;
@@ -130,7 +134,7 @@ public class Main {
             SlackNotifier slack = SlackNotifier.fromEnv();
             if (slack.hasWebhooks()) {
                 try {
-                    slack.sendDigest(newArticles, aiSummary, perArticleSummaries);
+                    slack.sendDigest(newArticles, aiSummary, perArticleSummaries, channelDetailedSummaries);
                 } catch (Exception e) {
                     log.warning("Slack gönderilemedi: " + e.getMessage());
                     hasError = true;
@@ -192,5 +196,46 @@ public class Main {
         String tags = article.tags() != null ? article.tags().toLowerCase() : "";
         String combined = source + " " + tags;
         return PRIORITY_PROJECTS.stream().anyMatch(combined::contains);
+    }
+
+    private static Map<String, String> buildDetailedChannelSummaries(AISummarizer summarizer, List<Article> allNewArticles) {
+        int detailLimit = readProjectDetailLimit();
+        Map<String, String> result = new HashMap<>();
+
+        for (String channel : DETAILED_PROJECT_CHANNELS) {
+            List<Article> projectArticles = allNewArticles.stream()
+                    .filter(article -> belongsToProjectChannel(article, channel))
+                    .sorted(Comparator.comparing(Article::publishedDate).reversed())
+                    .limit(detailLimit)
+                    .toList();
+            if (projectArticles.isEmpty()) {
+                continue;
+            }
+
+            String summary = summarizer.summarizeDetailedProject(channel, projectArticles);
+            if (summary != null && !summary.isBlank()) {
+                result.put(channel, summary);
+                log.info("Detayli " + channel + " ozeti olusturuldu (" + projectArticles.size() + " makale).");
+            }
+        }
+
+        return result;
+    }
+
+    private static int readProjectDetailLimit() {
+        String env = System.getenv("PROJECT_DETAIL_MAX_ARTICLES");
+        if (env == null || env.isBlank()) return DEFAULT_PROJECT_DETAIL_LIMIT;
+        try {
+            return Math.max(1, Integer.parseInt(env.trim()));
+        } catch (NumberFormatException e) {
+            return DEFAULT_PROJECT_DETAIL_LIMIT;
+        }
+    }
+
+    private static boolean belongsToProjectChannel(Article article, String channel) {
+        String source = article.source() != null ? article.source().toLowerCase() : "";
+        String tags = article.tags() != null ? article.tags().toLowerCase() : "";
+        String combined = source + " " + tags;
+        return combined.contains(channel.toLowerCase());
     }
 }

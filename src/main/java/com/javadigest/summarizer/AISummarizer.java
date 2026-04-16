@@ -69,6 +69,26 @@ public class AISummarizer {
         }
     }
 
+    public String summarizeDetailedProject(String project, List<Article> articles) {
+        if (articles == null || articles.isEmpty()) return "";
+        String prompt = buildDetailedProjectPrompt(project, articles);
+
+        if (!enabled) {
+            return buildDetailedProjectFallback(project, articles);
+        }
+
+        try {
+            String summary = callProvider(prompt, 900);
+            if (summary == null || summary.isBlank()) {
+                return buildDetailedProjectFallback(project, articles);
+            }
+            return summary;
+        } catch (Exception e) {
+            log.warning("Detayli proje ozeti olusturulamadi (" + project + "): " + e.getMessage());
+            return buildDetailedProjectFallback(project, articles);
+        }
+    }
+
     public Map<String, String> summarizePerArticle(List<Article> articles) {
         if (articles.isEmpty()) return Map.of();
         if (!enabled) return buildFallbackPerArticleSummaries(articles);
@@ -110,6 +130,32 @@ public class AISummarizer {
             sb.append("- [").append(a.source()).append("] ").append(a.title());
             if (a.author() != null && !a.author().isEmpty()) {
                 sb.append(" (").append(a.author()).append(")");
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
+
+    private String buildDetailedProjectPrompt(String project, List<Article> articles) {
+        String projectName = project == null ? "java" : project.toLowerCase();
+        StringBuilder sb = new StringBuilder();
+        sb.append("Asagidaki ").append(projectName)
+                .append(" proje iceriklerini Turkce, uzun ve detayli ozetle.\n");
+        sb.append("Kurallar:\n");
+        sb.append("- 6-10 cumle yaz.\n");
+        sb.append("- Teknik etkileri, olasi riskleri ve gelistiriciye etkisini belirt.\n");
+        sb.append("- Tekrara dusme.\n");
+        sb.append("- URL yazma.\n");
+        sb.append("- Sadece duz metin ver.\n\n");
+        sb.append("Icerikler:\n");
+        for (Article a : articles) {
+            sb.append("- ").append(a.title());
+            if (a.author() != null && !a.author().isBlank()) {
+                sb.append(" (").append(a.author()).append(")");
+            }
+            sb.append(" [").append(a.source()).append("]");
+            if (a.tags() != null && !a.tags().isBlank()) {
+                sb.append(" <").append(a.tags()).append(">");
             }
             sb.append("\n");
         }
@@ -475,6 +521,28 @@ public class AISummarizer {
         return "Bugün " + articleCount + " yeni Java içeriği tarandı. "
                 + "Öne çıkan kaynaklar: " + sourceList + ". "
                 + "İçerikler dil özellikleri, JVM performansı, OpenJDK gelişmeleri ve araç ekosistemindeki güncellemeler etrafında yoğunlaşıyor.";
+    }
+
+    private String buildDetailedProjectFallback(String project, List<Article> articles) {
+        String normalized = project == null || project.isBlank() ? "proje" : project.toUpperCase();
+        List<Article> latest = articles.stream().limit(4).toList();
+        StringBuilder sb = new StringBuilder();
+        sb.append(normalized).append(" tarafinda bu turda ")
+                .append(articles.size())
+                .append(" yeni guncelleme degerlendirildi. ");
+        sb.append("Mesajlarin ortak temasinda tasarim detaylari, API davranislarinin netlestirilmesi ve gelistirici deneyimini iyilestiren noktalar one cikiyor. ");
+        sb.append("Ozellikle son tartismalarda gercek dunya kullanim senaryolari uzerinden uyumluluk, performans ve bakim maliyeti etkileri konusuluyor. ");
+        sb.append("Bu akis, ilgili projenin kisa vadede davranissal netlik kazanacagini ve orta vadede uygulama tarafinda daha ongorulebilir bir gelistirme deneyimi hedefledigini gosteriyor. ");
+        if (!latest.isEmpty()) {
+            sb.append("One cikan basliklar: ");
+            for (int i = 0; i < latest.size(); i++) {
+                if (i > 0) sb.append("; ");
+                sb.append(latest.get(i).title());
+            }
+            sb.append(". ");
+        }
+        sb.append("Takip edilen gelismeler, mimari kararlarin olgunlastigi ve teknik geri bildirimlerin dogrudan spesifikasyon kalitesine yansidigi bir doneme isaret ediyor.");
+        return sb.toString();
     }
 
     private record GeminiCallResult(int statusCode, String text, String message) {

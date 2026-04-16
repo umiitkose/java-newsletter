@@ -73,7 +73,8 @@ public class SlackNotifier {
     public void sendDigest(
             List<Article> articles,
             String generalSummary,
-            Map<String, String> articleSummaries
+            Map<String, String> articleSummaries,
+            Map<String, String> channelSummaries
     ) throws Exception {
         if (articles.isEmpty()) {
             String webhookUrl = channelWebhooks.get("general");
@@ -102,7 +103,13 @@ public class SlackNotifier {
                 continue;
             }
 
-            String payload = buildPayload(channelKey, channelArticles, generalSummary, articleSummaries);
+            String payload = buildPayload(
+                    channelKey,
+                    channelArticles,
+                    generalSummary,
+                    articleSummaries,
+                    channelSummaries
+            );
             postToWebhook(webhookUrl, payload);
             log.info("Slack #" + channelKey + ": " + channelArticles.size() + " makale gönderildi.");
         }
@@ -132,7 +139,8 @@ public class SlackNotifier {
             String channelKey,
             List<Article> articles,
             String generalSummary,
-            Map<String, String> articleSummaries
+            Map<String, String> articleSummaries,
+            Map<String, String> channelSummaries
     ) throws Exception {
         String emoji = channelEmoji(channelKey);
         List<Map<String, Object>> blocks = new ArrayList<>();
@@ -147,7 +155,12 @@ public class SlackNotifier {
         blocks.add(Map.of("type", "divider"));
 
         String effectiveSummary;
-        if ("general".equals(channelKey) && generalSummary != null && !generalSummary.isBlank()) {
+        if (channelSummaries != null
+                && channelSummaries.containsKey(channelKey)
+                && channelSummaries.get(channelKey) != null
+                && !channelSummaries.get(channelKey).isBlank()) {
+            effectiveSummary = channelSummaries.get(channelKey);
+        } else if ("general".equals(channelKey) && generalSummary != null && !generalSummary.isBlank()) {
             effectiveSummary = generalSummary;
         } else {
             effectiveSummary = buildFallbackSummary(articles);

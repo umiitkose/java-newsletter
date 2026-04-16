@@ -160,10 +160,12 @@ java -jar target/java-digest-1.0-SNAPSHOT.jar
 export GEMINI_API_KEY="..."
 export GEMINI_MODEL="gemini-2.5-flash"   # opsiyonel
 export SUMMARY_MAX_ARTICLES="12"         # opsiyonel, AI ozetlenecek makale limiti
+export PROJECT_DETAIL_MAX_ARTICLES="20"  # opsiyonel, amber/valhalla detayli ozet kapsam limiti
 java -jar target/java-digest-1.0-SNAPSHOT.jar
 ```
 
 AI ozetleme oncelikle su projelere odaklanir: Amber, Valhalla, Loom, Panama, Leyden ve JEP degisimleri. Limit dolmazsa kalan son iceriklerden tamamlanir.
+Amber ve Valhalla kanallari icin ayrica uzun ve detayli kanal ozeti uretilir.
 
 ---
 
