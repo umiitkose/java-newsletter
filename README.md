@@ -1,234 +1,215 @@
-# ☕ Java Digest Bot
+# Java Digest Bot
 
-Java ekosisteminin önemli mimarlarının (Brian Goetz, Ron Pressler, Gavin Bierman ve diğerleri)
-yeni yazılarını, mailing list mesajlarını ve JEP durum değişikliklerini takip edip
-her gün **Slack** kanalına linksiz Türkçe özet olarak yayınlayan bot.
+Java Digest Bot tracks key Java ecosystem sources (RSS feeds, OpenJDK mailing lists, and JEP changes), then publishes AI-assisted daily summaries to Slack channels.
 
-## Takip Edilen Kaynaklar
+The project supports:
+- Channel-based Slack routing (`general`, `amber`, `valhalla`, `loom`, `leyden`, `panama`)
+- Per-link short AI summaries
+- Detailed long-form channel summaries for Amber and Valhalla
+- Retry/fallback behavior for Gemini API rate/load issues
 
-### Yazar Filtreli (sadece takip edilen isimler)
+## What It Tracks
 
-| Kaynak | Yöntem |
-|--------|--------|
-| [inside.java](https://inside.java) | RSS + yazar filtresi |
-| [InfoQ Java](https://www.infoq.com/java/) | RSS + yazar filtresi |
+### Author-filtered RSS feeds
 
-### OpenJDK Mailing Listleri (yazar filtreli)
+| Source | Method |
+|---|---|
+| [inside.java](https://inside.java) | RSS + tracked author filter |
+| [InfoQ Java](https://www.infoq.com/java/) | RSS + tracked author filter |
 
-| Liste | Konu |
-|-------|------|
-| amber-spec-experts | Records, Pattern Matching, Sealed Classes |
-| valhalla-spec-observers | Value Types, Null Safety |
-| loom-dev | Virtual Threads, Structured Concurrency |
-| jdk-dev | Genel JDK geliştirme |
-| panama-dev | Foreign Function & Memory API |
-| leyden-dev | Startup performansı, AOT |
-| compiler-dev | HotSpot derleyici |
-| zgc-dev | ZGC garbage collector |
+### OpenJDK mailing lists
 
-### Topluluk Blogları (anahtar kelime filtreli)
+| List | Focus area |
+|---|---|
+| `amber-spec-experts` | Records, Pattern Matching, Sealed Classes |
+| `valhalla-spec-observers` | Value Types, Null Safety |
+| `loom-dev` | Virtual Threads, Structured Concurrency |
+| `jdk-dev` | General JDK development |
+| `panama-dev` | Foreign Function & Memory API |
+| `leyden-dev` | Startup performance, AOT |
+| `compiler-dev` | Compiler/HotSpot |
+| `zgc-dev` | ZGC |
 
-| Kaynak | Açıklama |
-|--------|----------|
-| [dev.java](https://dev.java) | Oracle resmi Java geliştirici portali |
-| [Java Almanac](https://javaalmanac.io) | Java sürüm ve platform değişiklikleri (GitHub Atom feed) |
-| [Foojay.io](https://foojay.io) | Java topluluk haberleri, JEP analizleri |
-| [Baeldung](https://www.baeldung.com) | Java tutorial ve derinlemesine yazılar |
-| [DZone Java](https://dzone.com/java) | Java zone makaleleri |
-| [Spring Blog](https://spring.io/blog) | Spring Framework güncellemeleri |
-| [Quarkus Blog](https://quarkus.io/blog) | Quarkus framework haberleri |
-| [JetBrains Blog](https://blog.jetbrains.com/idea/) | IntelliJ IDEA ve Java araç haberleri |
+### Community feeds
 
-### JEP Durum Takibi
+| Source | Notes |
+|---|---|
+| [dev.java](https://dev.java) | Official Java developer portal |
+| [Java Almanac](https://javaalmanac.io) | Java platform/version updates (GitHub Atom feed) |
+| [Foojay](https://foojay.io) | Community updates and deep dives |
+| [Baeldung](https://www.baeldung.com) | Tutorials and practical guides |
+| [DZone Java](https://dzone.com/java) | Java ecosystem articles |
+| [Spring Blog](https://spring.io/blog) | Spring updates |
+| [Quarkus Blog](https://quarkus.io/blog) | Quarkus updates |
+| [JetBrains IDEA Blog](https://blog.jetbrains.com/idea/) | Tooling updates |
 
-[openjdk.org/jeps](https://openjdk.org/jeps/0) sayfasından Amber, Valhalla, Loom, Panama, Leyden ve Lilliput projelerinin JEP durumlarını izler. Durum değişikliği olduğunda bildirim gönderir.
+### JEP status tracking
 
-## Takip Edilen İsimler
+JEP changes are checked from [openjdk.org/jeps/0](https://openjdk.org/jeps/0) for:
+`Amber`, `Valhalla`, `Loom`, `Panama`, `Leyden`, `Lilliput`.
 
-| İsim | Proje |
-|------|-------|
-| Brian Goetz | Amber, Valhalla |
-| Ron Pressler | Loom |
-| Gavin Bierman | Amber — dil spec |
-| Maurizio Cimadamore | Valhalla, Panama |
-| Mark Reinhold | Leyden, genel mimari |
-| Dan Smith | Amber |
-| Angelos Bimpoudis | Amber |
-| Viktor Klang | Loom |
-| Alan Bateman | Core Libraries, Loom |
-| Paul Sandoz | Panama, Babylon |
+## Slack Community and Channels
 
-> Yazarlar ve anahtar kelimeler `config.yml` dosyasından yönetilir.
+You can join the `java-newsletter` Slack community and subscribe only to channels you care about.  
+After joining the workspace, simply join channels like:
 
----
+- `#java-general`
+- `#java-amber`
+- `#java-valhalla`
+- `#java-loom`
+- `#java-leyden`
+- `#java-panama`
 
-## Kurulum
+Then you can just wait for scheduled updates in that channel.
 
-### 1. Repoyu fork'la veya klonla
+### Example screenshots
+
+Channel selection example:
+
+![Slack channel list](docs/images/slack-channel-list.png)
+
+General channel message example:
+
+![Slack general example](docs/images/slack-general-example.png)
+
+Valhalla channel message example:
+
+![Slack valhalla example](docs/images/slack-valhalla-example.png)
+
+## Setup
+
+### 1) Clone the repository
 
 ```bash
 git clone https://github.com/umiitkose/java-newsletter
 cd java-newsletter
 ```
 
-### 2. Yapılandırma
+### 2) Configure sources and filters
 
-Tüm ayarlar `config.yml` dosyasında merkezi olarak yönetilir:
+All source/filter settings are centralized in `config.yml`:
 
 ```yaml
-authors:         # takip edilen yazarlar
-keywords:        # topluluk blogları için anahtar kelime filtresi
-rss:             # RSS kaynakları (authorFiltered + community)
-mailingLists:    # OpenJDK mailing listleri
-jep:             # JEP durum takibi (enabled: true/false)
-ai:              # AI özet (enabled: true/false, provider: openai/gemini/ollama)
-pages:           # GitHub Pages (enabled: true/false, outputDir: docs)
+authors:
+keywords:
+rss:
+mailingLists:
+jep:
+ai:
+pages:
 ```
 
-### 3. Slack Webhook Kur
+Current default AI config in the repository:
 
-Her kanal için ayrı webhook oluştur:
-
-1. [api.slack.com/apps](https://api.slack.com/apps) → **Create New App → From scratch**
-2. **Incoming Webhooks** → Activate → **Add New Webhook to Workspace**
-3. İstediğin kanalı seç → Webhook URL'sini kopyala
-
-Önerilen kanal yapısı:
-```
-#java-general   → genel içerikler
-#java-amber     → Records, Pattern Matching, Sealed Classes
-#java-valhalla  → Value Types, Null Safety
-#java-loom      → Virtual Threads, Structured Concurrency
-#java-leyden    → Startup, AOT
-#java-panama    → Native Interop, Vector API
+```yaml
+ai:
+  enabled: true
+  provider: gemini
 ```
 
-### 4. GitHub Secrets Ekle
+### 3) Configure Slack webhooks
 
-Repo → **Settings → Secrets and variables → Actions → New repository secret**
+Create one incoming webhook per target channel in Slack.
 
-| Secret Adı | Açıklama | Zorunlu |
-|------------|----------|---------|
-| `SLACK_WEBHOOK_GENERAL` | Genel kanal webhook | Evet |
-| `SLACK_WEBHOOK_AMBER` | #java-amber | Hayır |
-| `SLACK_WEBHOOK_VALHALLA` | #java-valhalla | Hayır |
-| `SLACK_WEBHOOK_LOOM` | #java-loom | Hayır |
-| `SLACK_WEBHOOK_LEYDEN` | #java-leyden | Hayır |
-| `SLACK_WEBHOOK_PANAMA` | #java-panama | Hayır |
-| `OPENAI_API_KEY` | LLM özet için OpenAI API key | Hayır |
-| `GEMINI_API_KEY` | LLM özet için Gemini API key | Hayır |
+Required minimum:
+- `SLACK_WEBHOOK_GENERAL`
 
-> Uygulama sadece Slack'e yayın yapar.
+Optional project channels:
+- `SLACK_WEBHOOK_AMBER`
+- `SLACK_WEBHOOK_VALHALLA`
+- `SLACK_WEBHOOK_LOOM`
+- `SLACK_WEBHOOK_LEYDEN`
+- `SLACK_WEBHOOK_PANAMA`
 
-### 5. İlk çalıştırma
+### 4) Configure GitHub Actions secrets / variables
 
-Actions sekmesinden **"Java Digest — Günlük Özet"** workflow'unu seç →
-**Run workflow** ile manuel tetikle.
+Go to:
+`Repository -> Settings -> Secrets and variables -> Actions`
 
-`mode=test` ile çalıştırırsan `FORCE_SUMMARY` otomatik açılır; yeni içerik olmasa bile son içeriklerden test amaçlı Slack özeti gönderilir. Bu modda `state.json` ve `docs/` güncellenmez.
+Recommended secrets:
 
----
+| Name | Required | Description |
+|---|---|---|
+| `SLACK_WEBHOOK_GENERAL` | Yes | General channel webhook |
+| `SLACK_WEBHOOK_AMBER` | No | Amber channel webhook |
+| `SLACK_WEBHOOK_VALHALLA` | No | Valhalla channel webhook |
+| `SLACK_WEBHOOK_LOOM` | No | Loom channel webhook |
+| `SLACK_WEBHOOK_LEYDEN` | No | Leyden channel webhook |
+| `SLACK_WEBHOOK_PANAMA` | No | Panama channel webhook |
+| `GEMINI_API_KEY` | No* | Gemini provider key |
+| `OPENAI_API_KEY` | No* | OpenAI provider key |
 
-## Çalışma Zamanı
+\*Required only for the provider you use.
 
-| Zamanlama | Açıklama |
-|-----------|----------|
-| Her gün 08:00 UTC | Günlük digest (Türkiye: 11:00 yaz / 10:00 kış) |
-| Pazartesi 09:00 UTC | Haftalık özet (son 7 günün içerikleri) |
+Optional variables:
 
-Değiştirmek için `.github/workflows/daily-digest.yml` içindeki cron satırını düzenle.
+| Name | Description |
+|---|---|
+| `GEMINI_MODEL` | Primary Gemini model (default: `gemini-2.5-flash`) |
+| `GEMINI_FALLBACK_MODEL` | Fallback model on retries (default: `gemini-2.5-flash-lite`) |
+| `SUMMARY_MAX_ARTICLES` | Max article count used for AI summarization (default: `12`) |
+| `PROJECT_DETAIL_MAX_ARTICLES` | Max article count for detailed Amber/Valhalla summaries (default: `20`) |
 
----
+### 5) Run workflow manually
 
-## Yerel Test
+Use GitHub Actions `Run workflow` on `Java Digest — Günlük Özet`.
+
+`mode=test` automatically enables `FORCE_SUMMARY=true`, which sends a test summary even when there are no unseen items, and skips `state.json` / `docs` persistence.
+
+## Runtime Schedule
+
+Defined in `.github/workflows/daily-digest.yml`:
+
+- Daily digest: `0 8 * * *` (08:00 UTC)
+- Weekly digest: `0 9 * * 1` (Monday 09:00 UTC)
+
+## Local Run
 
 ```bash
-# Minimum: sadece makale toplama
-mvn package -q
+# Build
+mvn -q package -DskipTests
+
+# Basic run
 java -jar target/java-digest-1.0-SNAPSHOT.jar
 
-# Slack yayın ile:
-export SLACK_WEBHOOK_GENERAL="..."
-java -jar target/java-digest-1.0-SNAPSHOT.jar
-
-# AI özet aktif (config.yml'da ai.enabled: true olmalı):
-export OPENAI_API_KEY="sk-..."
-java -jar target/java-digest-1.0-SNAPSHOT.jar
-
-# Gemini ile AI özet:
-# config.yml -> ai.provider: gemini
+# Gemini run
 export GEMINI_API_KEY="..."
-export GEMINI_MODEL="gemini-2.5-flash"   # opsiyonel
-export SUMMARY_MAX_ARTICLES="12"         # opsiyonel, AI ozetlenecek makale limiti
-export PROJECT_DETAIL_MAX_ARTICLES="20"  # opsiyonel, amber/valhalla detayli ozet kapsam limiti
+export GEMINI_MODEL="gemini-2.5-flash"          # optional
+export GEMINI_FALLBACK_MODEL="gemini-2.5-flash-lite"  # optional
+export SUMMARY_MAX_ARTICLES="12"                # optional
+export PROJECT_DETAIL_MAX_ARTICLES="20"         # optional
+export FORCE_SUMMARY="true"                     # optional test mode
 java -jar target/java-digest-1.0-SNAPSHOT.jar
 ```
 
-AI ozetleme oncelikle su projelere odaklanir: Amber, Valhalla, Loom, Panama, Leyden ve JEP degisimleri. Limit dolmazsa kalan son iceriklerden tamamlanir.
-Amber ve Valhalla kanallari icin ayrica uzun ve detayli kanal ozeti uretilir.
+## Current Summary Behavior
 
----
+- AI summaries prioritize: `amber`, `valhalla`, `loom`, `panama`, `leyden`, `openjdk-jep`
+- Per-link short summaries are generated and shown under each link when possible
+- Amber and Valhalla channels receive long-form detailed channel summaries
+- Gemini calls include retry and model fallback strategy for `429/503`
+- If AI output format is malformed, parsing falls back to regex and then safe per-item fallback text
 
-## Mimari
+## Architecture
 
-```
-GitHub Actions (cron — günlük/haftalık)
-        │
-        ▼
-   Main.java (CompletableFuture ile paralel fetch)
-    │
-    ├── config.yml ─────────── DigestConfig (merkezi yapılandırma)
-    │
-    ├── Fetcher'lar (paralel çalışır)
-    │   ├── RssFetcher
-    │   │   ├── fetchAuthorFilteredFeeds()  → inside.java, InfoQ (yazar filtreli)
-    │   │   ├── fetchCommunityBlogs()       → Foojay, Quarkus, DZone... (keyword filtreli)
-    │   │   └── fetchMailingLists()         → 8 OpenJDK mailing list (RSS)
-    │   ├── MailingListScraper             → RSS başarısız olursa HTML fallback
-    │   └── JepTracker                     → JEP durum değişikliklerini izle
-    │
-    ├── StateManager ──────── state.json ile tekrar gönderimi önle
-    ├── AISummarizer ──────── OpenAI / Gemini / Ollama ile Turkce ozet (hata durumunda fallback)
-    │
-    ├── SlackNotifier ─────── linksiz genel ozet + kaynak bazli maddeler
-    │
-    └── DigestPageGenerator ── docs/ klasörüne Markdown arşiv sayfası
+```text
+GitHub Actions (cron + manual)
+  -> Main
+     -> parallel fetchers (RSS, mailing lists, JEP)
+     -> StateManager filter
+     -> AISummarizer (general + per-link + detailed project summaries)
+     -> SlackNotifier (channel routing + payload formatting)
+     -> DigestPageGenerator (docs/, optional)
+     -> state update
 ```
 
-## Proje Yapısı
+## Support
 
-```
-java-digest/
-├── config.yml                          # merkezi yapılandırma
-├── state.json                          # gönderilen makale ID'leri
-├── jep-state.json                      # JEP durum geçmişi
-├── docs/                               # GitHub Pages arşivi
-│   ├── index.md
-│   └── 2026-04-15.md
-├── pom.xml
-├── .github/workflows/daily-digest.yml
-└── src/main/java/com/javadigest/
-    ├── Main.java
-    ├── config/
-    │   └── DigestConfig.java
-    ├── fetcher/
-    │   ├── RssFetcher.java
-    │   ├── MailingListScraper.java
-    │   └── JepTracker.java
-    ├── generator/
-    │   └── DigestPageGenerator.java
-    ├── model/
-    │   └── Article.java
-    ├── notifier/
-    │   └── SlackNotifier.java
-    ├── state/
-    │   └── StateManager.java
-    └── summarizer/
-        └── AISummarizer.java
-```
+If this project helps you, please consider giving it a star on GitHub.
 
----
+- Repository: [umiitkose/java-newsletter](https://github.com/umiitkose/java-newsletter)
+- You can also share feedback in the `java-newsletter` Slack workspace or open an issue.
 
-## Lisans
+## License
 
 MIT
