@@ -59,6 +59,7 @@ After joining the workspace, simply join channels like:
 - `#java-loom`
 - `#java-leyden`
 - `#java-panama`
+- `#java-jep` (version/JEP status updates and platform-level changes)
 
 Then you can just wait for scheduled updates in that channel.
 
@@ -120,6 +121,7 @@ Optional project channels:
 - `SLACK_WEBHOOK_LOOM`
 - `SLACK_WEBHOOK_LEYDEN`
 - `SLACK_WEBHOOK_PANAMA`
+- `SLACK_WEBHOOK_JEP`
 
 ### 4) Configure GitHub Actions secrets / variables
 
@@ -136,6 +138,7 @@ Recommended secrets:
 | `SLACK_WEBHOOK_LOOM` | No | Loom channel webhook |
 | `SLACK_WEBHOOK_LEYDEN` | No | Leyden channel webhook |
 | `SLACK_WEBHOOK_PANAMA` | No | Panama channel webhook |
+| `SLACK_WEBHOOK_JEP` | No | Java JEP/version updates channel webhook |
 | `GEMINI_API_KEY` | No* | Gemini provider key |
 | `OPENAI_API_KEY` | No* | OpenAI provider key |
 

@@ -52,6 +52,7 @@ jobs:
           SLACK_WEBHOOK_LOOM:     ${{ secrets.SLACK_WEBHOOK_LOOM }}
           SLACK_WEBHOOK_LEYDEN:   ${{ secrets.SLACK_WEBHOOK_LEYDEN }}
           SLACK_WEBHOOK_PANAMA:   ${{ secrets.SLACK_WEBHOOK_PANAMA }}
+          SLACK_WEBHOOK_JEP:      ${{ secrets.SLACK_WEBHOOK_JEP }}
           OPENAI_API_KEY:         ${{ secrets.OPENAI_API_KEY }}
           GEMINI_API_KEY:         ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL:           ${{ vars.GEMINI_MODEL }}

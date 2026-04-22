@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
  *   Loom     → SLACK_WEBHOOK_LOOM
  *   Leyden   → SLACK_WEBHOOK_LEYDEN
  *   Panama   → SLACK_WEBHOOK_PANAMA
+ *   Java JEP → SLACK_WEBHOOK_JEP
  *   Diğer    → SLACK_WEBHOOK_GENERAL  (zorunlu, diğerleri opsiyonel)
  *
  * Slack Incoming Webhook URL'lerini GitHub Secrets'a ekle.
@@ -58,6 +59,7 @@ public class SlackNotifier {
         addIfPresent(webhooks, "loom",     "SLACK_WEBHOOK_LOOM");
         addIfPresent(webhooks, "leyden",   "SLACK_WEBHOOK_LEYDEN");
         addIfPresent(webhooks, "panama",   "SLACK_WEBHOOK_PANAMA");
+        addIfPresent(webhooks, "java-jep", "SLACK_WEBHOOK_JEP");
         addIfPresent(webhooks, "general",  "SLACK_WEBHOOK_GENERAL");
 
         return new SlackNotifier(webhooks);
@@ -120,7 +122,7 @@ public class SlackNotifier {
      * Birden fazla tag varsa en spesifik projeye gönderir.
      */
     private Map<String, List<Article>> groupByChannel(List<Article> articles) {
-        List<String> priority = List.of("valhalla", "loom", "amber", "leyden", "panama");
+        List<String> priority = List.of("openjdk-jep", "valhalla", "loom", "amber", "leyden", "panama");
 
         return articles.stream().collect(Collectors.groupingBy(article -> {
             String tags = article.tags() != null ? article.tags().toLowerCase() : "";
@@ -128,7 +130,9 @@ public class SlackNotifier {
             String combined = tags + " " + source;
 
             for (String project : priority) {
-                if (combined.contains(project)) return project;
+                if (combined.contains(project)) {
+                    return "openjdk-jep".equals(project) ? "java-jep" : project;
+                }
             }
             return "general";
         }));
@@ -268,12 +272,14 @@ public class SlackNotifier {
             case "loom"     -> "🟢";
             case "leyden"   -> "🔵";
             case "panama"   -> "🟡";
+            case "java-jep" -> "🧭";
             default         -> "☕";
         };
     }
 
-    private String capitalize(String s) {
-        if (s == null || s.isEmpty()) return s;
-        return Character.toUpperCase(s.charAt(0)) + s.substring(1);
+    private String capitalize(String channel) {
+        if (channel == null || channel.isEmpty()) return channel;
+        if ("java-jep".equals(channel)) return "JEP";
+        return Character.toUpperCase(channel.charAt(0)) + channel.substring(1);
     }
 }
