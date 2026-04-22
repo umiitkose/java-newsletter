@@ -29,7 +29,7 @@ public class Main {
     private static final Set<String> PRIORITY_PROJECTS = Set.of(
             "amber", "valhalla", "loom", "panama", "leyden", "openjdk-jep"
     );
-    private static final Set<String> DETAILED_PROJECT_CHANNELS = Set.of("amber", "valhalla");
+    private static final Set<String> DETAILED_PROJECT_CHANNELS = Set.of("amber", "valhalla", "java-jep");
     private static final int DEFAULT_SUMMARY_LIMIT = 12;
     private static final int DEFAULT_PROJECT_DETAIL_LIMIT = 20;
 
@@ -236,6 +236,9 @@ public class Main {
         String source = article.source() != null ? article.source().toLowerCase() : "";
         String tags = article.tags() != null ? article.tags().toLowerCase() : "";
         String combined = source + " " + tags;
+        if ("java-jep".equals(channel)) {
+            return combined.contains("openjdk-jep") || combined.contains("jep");
+        }
         return combined.contains(channel.toLowerCase());
     }
 }
