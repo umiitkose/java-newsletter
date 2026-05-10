@@ -78,6 +78,14 @@ jep:
     - Panama
     - Leyden
     - Lilliput
+  # Spotlight'ı bu JDK release'lerinde gösterilen JEP'lere yap.
+  # Boş bırakılırsa tüm release'ler normal şekilde bildirilir.
+  targetReleases:
+    - 27
+    - 28
+  # JEP olaylarının (yeni JEP, statü/release değişimi, completed) anlık
+  # yollanacağı Slack kanalı. SLACK_WEBHOOK_JAVA_NEWS env değişkeni gereklidir.
+  notifyChannel: java-news
 
 ai:
   enabled: true

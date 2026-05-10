@@ -1,6 +1,7 @@
 package com.javadigest.notifier;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.javadigest.fetcher.JepEvent;
 import com.javadigest.model.Article;
 
 import java.net.URI;
@@ -11,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -24,6 +26,7 @@ import java.util.stream.Collectors;
  *   Leyden   → SLACK_WEBHOOK_LEYDEN
  *   Panama   → SLACK_WEBHOOK_PANAMA
  *   Java JEP → SLACK_WEBHOOK_JEP
+ *   Java News→ SLACK_WEBHOOK_JAVA_NEWS  (anlık JEP olayları için)
  *   Diğer    → SLACK_WEBHOOK_GENERAL  (zorunlu, diğerleri opsiyonel)
  *
  * Slack Incoming Webhook URL'lerini GitHub Secrets'a ekle.
@@ -60,6 +63,7 @@ public class SlackNotifier {
         addIfPresent(webhooks, "leyden",   "SLACK_WEBHOOK_LEYDEN");
         addIfPresent(webhooks, "panama",   "SLACK_WEBHOOK_PANAMA");
         addIfPresent(webhooks, "java-jep", "SLACK_WEBHOOK_JEP");
+        addIfPresent(webhooks, "java-news","SLACK_WEBHOOK_JAVA_NEWS");
         addIfPresent(webhooks, "general",  "SLACK_WEBHOOK_GENERAL");
 
         return new SlackNotifier(webhooks);
@@ -267,19 +271,120 @@ public class SlackNotifier {
 
     private String channelEmoji(String channel) {
         return switch (channel) {
-            case "amber"    -> "🟠";
-            case "valhalla" -> "🟣";
-            case "loom"     -> "🟢";
-            case "leyden"   -> "🔵";
-            case "panama"   -> "🟡";
-            case "java-jep" -> "🧭";
-            default         -> "☕";
+            case "amber"     -> "🟠";
+            case "valhalla"  -> "🟣";
+            case "loom"      -> "🟢";
+            case "leyden"    -> "🔵";
+            case "panama"    -> "🟡";
+            case "java-jep"  -> "🧭";
+            case "java-news" -> "📰";
+            default          -> "☕";
         };
     }
 
     private String capitalize(String channel) {
         if (channel == null || channel.isEmpty()) return channel;
         if ("java-jep".equals(channel)) return "JEP";
+        if ("java-news".equals(channel)) return "News";
         return Character.toUpperCase(channel.charAt(0)) + channel.substring(1);
+    }
+
+    // ── JEP Event akışı ──────────────────────────────────────────────────────
+
+    /**
+     * JEP olaylarını {@code channelKey} kanalına anlık olarak (her olay ayrı mesaj)
+     * gönderir. Webhook tanımlı değilse sessizce general'a düşer; o da yoksa
+     * yalnızca log üretir. {@code spotlightReleases} içine giren olaylar başlıkta
+     * vurgulanır (örn. JDK 27 odaklı bildirim).
+     */
+    public void sendJepEvents(List<JepEvent> events, Set<Integer> spotlightReleases, String channelKey) {
+        if (events == null || events.isEmpty()) return;
+
+        String key = (channelKey == null || channelKey.isBlank()) ? "java-news" : channelKey;
+        String webhookUrl = channelWebhooks.get(key);
+        if (webhookUrl == null) {
+            webhookUrl = channelWebhooks.get("general");
+        }
+        if (webhookUrl == null) {
+            log.warning("JEP olayları için Slack webhook yok (" + key + " ve general tanımsız), atlanıyor.");
+            return;
+        }
+
+        Set<Integer> spotlight = spotlightReleases == null ? Set.of() : spotlightReleases;
+        int sent = 0;
+        for (JepEvent event : events) {
+            try {
+                String payload = buildJepEventPayload(event, spotlight);
+                postToWebhook(webhookUrl, payload);
+                sent++;
+            } catch (Exception e) {
+                log.warning("JEP olayı gönderilemedi (" + event.jepId() + "): " + e.getMessage());
+            }
+        }
+        log.info("Slack #" + key + ": " + sent + "/" + events.size() + " JEP olayı gönderildi.");
+    }
+
+    private String buildJepEventPayload(JepEvent event, Set<Integer> spotlightReleases) throws Exception {
+        boolean spotlight = event.newRelease() != null && spotlightReleases.contains(event.newRelease());
+        String emoji = jepEventEmoji(event.type());
+        String releaseBadge = event.newRelease() != null ? " · *JDK " + event.newRelease() + "*" : "";
+        if (spotlight) releaseBadge += " ⭐";
+
+        String header = emoji + " " + event.headline();
+        if (header.length() > 150) header = header.substring(0, 147) + "…";
+
+        StringBuilder body = new StringBuilder();
+        body.append("*<").append(event.url()).append("|JEP ").append(event.jepId()).append(">* ")
+                .append(event.title()).append(releaseBadge).append("\n");
+
+        switch (event.type()) {
+            case NEW -> body.append("Yeni bir JEP keşfedildi (statü: *")
+                    .append(event.newStatus()).append("*).");
+            case STATUS_CHANGED -> body.append("Statü: *")
+                    .append(event.previousStatus()).append("* → *")
+                    .append(event.newStatus()).append("*");
+            case RELEASE_TARGETED -> body.append("Bu JEP artık *JDK ")
+                    .append(event.newRelease()).append("* için hedeflendi.");
+            case RELEASE_CHANGED -> body.append("Hedef release değişti: *JDK ")
+                    .append(event.previousRelease()).append("* → *JDK ")
+                    .append(event.newRelease()).append("*");
+            case COMPLETED -> body.append("✅ JEP *")
+                    .append(event.newStatus()).append("* statüsüne geçti")
+                    .append(event.newRelease() != null ? " (JDK " + event.newRelease() + ").": ".");
+        }
+
+        if (event.component() != null && !event.component().isBlank()) {
+            body.append("\n_Component: ").append(event.component()).append("_");
+        }
+
+        List<Map<String, Object>> blocks = new ArrayList<>();
+        blocks.add(Map.of(
+                "type", "header",
+                "text", Map.of("type", "plain_text", "text", header, "emoji", true)
+        ));
+        blocks.add(Map.of(
+                "type", "section",
+                "text", Map.of("type", "mrkdwn", "text", body.toString())
+        ));
+        blocks.add(Map.of(
+                "type", "context",
+                "elements", List.of(Map.of(
+                        "type", "mrkdwn",
+                        "text", "openjdk.org/jeps  •  Java Digest Bot"
+                                + (spotlight ? "  •  ⭐ takip edilen release" : "")
+                ))
+        ));
+
+        return json.writeValueAsString(Map.of("blocks", blocks, "text", header));
+    }
+
+    private String jepEventEmoji(JepEvent.Type type) {
+        return switch (type) {
+            case NEW              -> "🆕";
+            case STATUS_CHANGED   -> "🔁";
+            case RELEASE_TARGETED -> "🎯";
+            case RELEASE_CHANGED  -> "🔀";
+            case COMPLETED        -> "✅";
+        };
     }
 }
