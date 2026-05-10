@@ -107,11 +107,19 @@ public class DigestConfig {
     public static class JepConfig {
         private boolean enabled = false;
         private List<String> trackedProjects = List.of();
+        /** Spotlight yapılacak JDK release'leri (örn. [27, 28]). Boş ise hepsi normal işlenir. */
+        private List<Integer> targetReleases = List.of();
+        /** SlackNotifier'da JEP olaylarının yollanacağı kanal anahtarı (default "java-news"). */
+        private String notifyChannel = "java-news";
 
         public boolean isEnabled() { return enabled; }
         public void setEnabled(boolean enabled) { this.enabled = enabled; }
         public List<String> getTrackedProjects() { return trackedProjects; }
         public void setTrackedProjects(List<String> trackedProjects) { this.trackedProjects = trackedProjects; }
+        public List<Integer> getTargetReleases() { return targetReleases; }
+        public void setTargetReleases(List<Integer> targetReleases) { this.targetReleases = targetReleases; }
+        public String getNotifyChannel() { return notifyChannel; }
+        public void setNotifyChannel(String notifyChannel) { this.notifyChannel = notifyChannel; }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

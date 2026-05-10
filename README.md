@@ -3,10 +3,11 @@
 Java Digest Bot tracks key Java ecosystem sources (RSS feeds, OpenJDK mailing lists, and JEP changes), then publishes AI-assisted daily summaries to Slack channels.
 
 The project supports:
-- Channel-based Slack routing (`general`, `amber`, `valhalla`, `loom`, `leyden`, `panama`)
+- Channel-based Slack routing (`general`, `amber`, `valhalla`, `loom`, `leyden`, `panama`, `java-news`)
 - Per-link short AI summaries
 - Detailed long-form channel summaries for Amber and Valhalla
 - Retry/fallback behavior for Gemini API rate/load issues
+- **Real-time JEP event notifications** for new JEPs, status changes, release targeting (e.g. JDK 27) and completed JEPs — pushed instantly to a dedicated `java-news` channel
 
 ## What It Tracks
 
@@ -48,6 +49,31 @@ The project supports:
 JEP changes are checked from [openjdk.org/jeps/0](https://openjdk.org/jeps/0) for:
 `Amber`, `Valhalla`, `Loom`, `Panama`, `Leyden`, `Lilliput`.
 
+The tracker emits five distinct event types and pushes each one as its own
+Slack message into the `#java-news` channel as soon as it appears:
+
+| Event | When |
+|---|---|
+| `NEW` | A JEP shows up on the JEP index for the first time |
+| `STATUS_CHANGED` | Draft → Candidate → Proposed to Target → Targeted etc. |
+| `RELEASE_TARGETED` | A JEP is bound to a JDK release for the first time (e.g. JDK 27) |
+| `RELEASE_CHANGED` | A JEP is moved to another JDK release (e.g. 26 → 27) |
+| `COMPLETED` | A JEP becomes Integrated / Completed / Closed / Delivered |
+
+You can highlight specific releases in `config.yml`:
+
+```yaml
+jep:
+  enabled: true
+  trackedProjects: [Amber, Valhalla, Loom, Panama, Leyden, Lilliput]
+  targetReleases: [27, 28]   # ⭐ spotlighted in the message footer
+  notifyChannel: java-news    # SLACK_WEBHOOK_JAVA_NEWS env required
+```
+
+Spotlighted events get a ⭐ marker in the Slack footer, and only spotlighted
+"new JEP" events propagate to the daily digest (everything still goes to
+`#java-news` instantly so you never miss a JEP).
+
 ## Slack Community and Channels
 
 You can join the `java-newsletter` Slack community and subscribe only to channels you care about.  
@@ -59,7 +85,8 @@ After joining the workspace, simply join channels like:
 - `#java-loom`
 - `#java-leyden`
 - `#java-panama`
-- `#java-jep` (version/JEP status updates and platform-level changes)
+- `#java-jep` (digest of JEP status updates)
+- `#java-news` (real-time per-JEP notifications: new JEPs, status/release changes, completions)
 
 Then you can just wait for scheduled updates in that channel.
 
@@ -122,6 +149,7 @@ Optional project channels:
 - `SLACK_WEBHOOK_LEYDEN`
 - `SLACK_WEBHOOK_PANAMA`
 - `SLACK_WEBHOOK_JEP`
+- `SLACK_WEBHOOK_JAVA_NEWS` (real-time per-JEP event notifications)
 
 ### 4) Configure GitHub Actions secrets / variables
 
@@ -139,6 +167,7 @@ Recommended secrets:
 | `SLACK_WEBHOOK_LEYDEN` | No | Leyden channel webhook |
 | `SLACK_WEBHOOK_PANAMA` | No | Panama channel webhook |
 | `SLACK_WEBHOOK_JEP` | No | Java JEP/version updates channel webhook |
+| `SLACK_WEBHOOK_JAVA_NEWS` | No | Real-time per-JEP event notifications (new/targeted/completed) |
 | `GEMINI_API_KEY` | No* | Gemini provider key |
 | `OPENAI_API_KEY` | No* | OpenAI provider key |
 

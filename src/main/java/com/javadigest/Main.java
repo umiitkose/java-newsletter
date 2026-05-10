@@ -1,6 +1,7 @@
 package com.javadigest;
 
 import com.javadigest.config.DigestConfig;
+import com.javadigest.fetcher.JepEvent;
 import com.javadigest.fetcher.JepTracker;
 import com.javadigest.fetcher.MailingListScraper;
 import com.javadigest.fetcher.RssFetcher;
@@ -14,6 +15,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,9 +57,19 @@ public class Main {
         tasks.add(new FetchTask("Topluluk blogları", rss::fetchCommunityBlogs));
         tasks.add(new FetchTask("Mailing list RSS", rss::fetchMailingLists));
 
+        // JEP olayları: tek bir poll ile hem anlık (java-news) hem de digest akışına gider.
+        List<JepEvent> jepEvents = new ArrayList<>();
         if (config.getJep().isEnabled()) {
             JepTracker jepTracker = new JepTracker(config.getJep().getTrackedProjects());
-            tasks.add(new FetchTask("JEP Tracker", jepTracker::checkForChanges));
+            tasks.add(new FetchTask("JEP Tracker", () -> {
+                List<JepEvent> events = jepTracker.pollEvents();
+                synchronized (jepEvents) { jepEvents.addAll(events); }
+                return events.stream()
+                        .filter(e -> e.type() != JepEvent.Type.NEW
+                                || isPriorityRelease(e, config.getJep().getTargetReleases()))
+                        .map(JepEvent::toArticle)
+                        .toList();
+            }));
         }
 
         ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
@@ -133,6 +145,18 @@ public class Main {
 
             SlackNotifier slack = SlackNotifier.fromEnv();
             if (slack.hasWebhooks()) {
+                // 4a) JEP olaylarını anlık olarak java-news kanalına push et.
+                if (!jepEvents.isEmpty() && !forceSummary) {
+                    Set<Integer> spotlight = new HashSet<>(config.getJep().getTargetReleases());
+                    String jepChannel = config.getJep().getNotifyChannel();
+                    try {
+                        slack.sendJepEvents(jepEvents, spotlight, jepChannel);
+                    } catch (Exception e) {
+                        log.warning("JEP olayları gönderilemedi: " + e.getMessage());
+                        hasError = true;
+                    }
+                }
+                // 4b) Günlük/haftalık digest mesajı.
                 try {
                     slack.sendDigest(newArticles, aiSummary, perArticleSummaries, channelDetailedSummaries);
                 } catch (Exception e) {
@@ -230,6 +254,16 @@ public class Main {
         } catch (NumberFormatException e) {
             return DEFAULT_PROJECT_DETAIL_LIMIT;
         }
+    }
+
+    /**
+     * Yeni JEP olaylarının digest'e dahil edilip edilmeyeceğine karar verir:
+     * targetReleases tanımlanmışsa sadece onlara ait yeni JEP'ler digest'e girer
+     * (java-news kanalına ise hepsi anlık gider). targetReleases boşsa hepsi girer.
+     */
+    private static boolean isPriorityRelease(JepEvent event, List<Integer> targetReleases) {
+        if (targetReleases == null || targetReleases.isEmpty()) return true;
+        return event.newRelease() != null && targetReleases.contains(event.newRelease());
     }
 
     private static boolean belongsToProjectChannel(Article article, String channel) {
